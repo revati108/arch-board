@@ -1,0 +1,4 @@
+div
+    [[dashboard/header.html]]
+    [[dashboard/stat_cards.html]]
+    [[dashboard/quick_actions.html]]
