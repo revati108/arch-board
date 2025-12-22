@@ -15,9 +15,10 @@ Supports:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, Union, Any
+from typing import Dict, List, Optional, Union, Any, Set
 import re
 import os
+import glob as glob_module
 
 
 # =============================================================================
@@ -517,12 +518,15 @@ class HyprConf:
 # =============================================================================
 
 class Parser:
-    def __init__(self, tokens: List[Token], source_text: str = ""):
+    def __init__(self, tokens: List[Token], source_text: str = "", 
+                 base_dir: str = "", parsed_files: Optional[Set[str]] = None):
         self.tokens = tokens
         self.source_text = source_text
         self.pos = 0
         self.config = HyprConf()
         self.conditionals: List[bool] = []  # Stack of conditional states
+        self.base_dir = base_dir or os.getcwd()  # Base directory for resolving relative paths
+        self.parsed_files = parsed_files if parsed_files is not None else set()  # Track parsed files to prevent circular inclusion
     
     def peek(self, offset: int = 0) -> Token:
         idx = self.pos + offset
@@ -646,6 +650,12 @@ class Parser:
             self.advance()  # consume =
             value = self._parse_value()
             
+            # Special handling for source keyword
+            final_name, final_key = path_parts[-1]
+            if final_name == "source" and len(path_parts) == 1:
+                self._handle_source(value.raw)
+                return
+            
             # Navigate to create nested categories if needed
             target_lines = lines
             target_cats = categories
@@ -662,7 +672,6 @@ class Parser:
                 target_lines = found.lines
                 target_cats = found.categories
             
-            final_name, final_key = path_parts[-1]
             line = HyprLine(key=final_name, value=value)
             target_lines.append(line)
             return
@@ -701,6 +710,95 @@ class Parser:
                 
                 if self.peek().type == TokenType.RBRACE:
                     self.advance()  # consume }
+    
+    def _handle_source(self, path_pattern: str):
+        """Handle source = path statements by parsing the sourced file(s).
+        
+        Supports:
+        - Relative paths (resolved against current file's directory)
+        - Tilde expansion (~)
+        - Glob patterns (*, **, ?)
+        """
+        # Expand tilde
+        path_pattern = os.path.expanduser(path_pattern)
+        
+        # Resolve relative path against base directory
+        if not os.path.isabs(path_pattern):
+            path_pattern = os.path.join(self.base_dir, path_pattern)
+        
+        # Expand glob patterns
+        matched_files = glob_module.glob(path_pattern, recursive=True)
+        
+        # Sort for consistent ordering
+        matched_files.sort()
+        
+        for file_path in matched_files:
+            # Skip directories
+            if os.path.isdir(file_path):
+                continue
+            
+            # Resolve to absolute path
+            abs_path = os.path.abspath(file_path)
+            
+            # Check for circular inclusion
+            if abs_path in self.parsed_files:
+                continue
+            
+            # Skip if file doesn't exist
+            if not os.path.exists(abs_path):
+                continue
+            
+            # Mark as parsed
+            self.parsed_files.add(abs_path)
+            
+            try:
+                # Read and parse the file
+                with open(abs_path, 'r') as f:
+                    source_text = f.read()
+                
+                # Tokenize
+                lexer = Lexer(source_text)
+                tokens = lexer.tokenize()
+                
+                # Parse with context - pass along parsed_files to prevent circular inclusion
+                sub_parser = Parser(
+                    tokens, 
+                    source_text=source_text,
+                    base_dir=os.path.dirname(abs_path),
+                    parsed_files=self.parsed_files
+                )
+                sub_config = sub_parser.parse()
+                
+                # Merge the parsed config into our current config
+                self._merge_config(sub_config)
+                
+            except Exception as e:
+                # Silently skip files that can't be parsed
+                pass
+    
+    def _merge_config(self, other: HyprConf):
+        """Merge another config's content into the current config."""
+        # Merge variables
+        self.config.variables.update(other.variables)
+        
+        # Append lines
+        self.config.lines.extend(other.lines)
+        
+        # Merge categories - if same category exists, merge contents
+        for other_cat in other.categories:
+            existing_cat = None
+            for cat in self.config.categories:
+                if cat.name == other_cat.name and cat.key == other_cat.key:
+                    existing_cat = cat
+                    break
+            
+            if existing_cat:
+                # Merge lines and subcategories
+                existing_cat.lines.extend(other_cat.lines)
+                existing_cat.categories.extend(other_cat.categories)
+            else:
+                # Add as new category
+                self.config.categories.append(other_cat)
     
     def _parse_value(self) -> HyprValue:
         """Parse a value (everything until newline or special char in context)."""
@@ -845,15 +943,24 @@ class HyprLang:
     
     def load(self) -> HyprConf:
         """Load and parse the config file."""
-        with open(self.file_path, 'r') as f:
+        abs_path = os.path.abspath(self.file_path)
+        with open(abs_path, 'r') as f:
             text = f.read()
-        return self.parse(text)
+        
+        # Initialize parsed_files set with the main file to prevent circular inclusion
+        parsed_files: Set[str] = {abs_path}
+        return self.parse(text, base_dir=os.path.dirname(abs_path), parsed_files=parsed_files)
     
-    def parse(self, text: str) -> HyprConf:
+    def parse(self, text: str, base_dir: str = "", parsed_files: Optional[Set[str]] = None) -> HyprConf:
         """Parse config from string."""
         lexer = Lexer(text)
         tokens = lexer.tokenize()
-        parser = Parser(tokens, source_text=text)
+        parser = Parser(
+            tokens, 
+            source_text=text,
+            base_dir=base_dir or os.getcwd(),
+            parsed_files=parsed_files
+        )
         self.config = parser.parse()
         return self.config
     
