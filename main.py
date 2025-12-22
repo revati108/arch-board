@@ -26,5 +26,8 @@ if __name__ == "__main__":
     import uvicorn
     if config.production:
         Builder().build()
-    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=RELOAD_SERVER,
-                reload_excludes=["components", "pages", "assets"], workers=4)
+    uvicorn.run(
+        "main:app", host="0.0.0.0", port=5000, reload=RELOAD_SERVER,
+                reload_excludes=["components", "pages", "assets"],
+                # workers=4
+                )

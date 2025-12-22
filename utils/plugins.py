@@ -1,7 +1,10 @@
 import os
 from typing import Dict, List
 from fastapi import APIRouter
+from requestez.helpers import get_logger, error
+from logging import Logger
 
+get_logger().logger = Logger("arch_board")
 
 def list_plugins() -> Dict[str, str]:
     final_plugins = {}
@@ -28,6 +31,9 @@ def get_routers() -> List[APIRouter]:
     plugins = list_plugins()
     routers = []
     for plugin_name, router_name in plugins.items():
-        routers.append(getattr(__import__(f"{plugin_name}"), router_name))
+        try:
+            routers.append(getattr(__import__(f"{plugin_name}"), router_name))
+        except Exception as e:
+            error(f"Failed to load plugin {plugin_name}: {e}")
     return routers
 
