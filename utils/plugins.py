@@ -1,4 +1,5 @@
 import os
+import importlib
 from typing import Dict, List
 from fastapi import APIRouter
 from requestez.helpers import get_logger, error
@@ -11,12 +12,13 @@ def list_plugins() -> Dict[str, str]:
     plugins = []
     if os.path.exists("plugins.txt"):
         with open("plugins.txt") as f:
-            plugins = f.read().splitlines()
+            plugins = [line.strip() for line in f.read().splitlines()]
             for line in plugins:
-                line = line.strip().split("=", 1)
+                if line.startswith("#"): continue
+                line = line.split("=", 1)
                 if len(line) != 2: continue
                 final_plugins["plugins."+line[0].strip()] = line[1].strip()  # plugin_name, router name
-    default_routers = ["hyprland", "system", "presets", "pages", "static"]
+    default_routers = ["dashboard", "hyprland", "waybar", "hyprlock", "hypridle", "wpaperd", "system", "presets", "static", "navigation"]
     for router in default_routers:
         if "exclude:router:"+router in plugins:
             continue
@@ -29,11 +31,14 @@ def get_routers() -> List[APIRouter]:
     :return:
     """
     plugins = list_plugins()
+    print(plugins)
     routers = []
     for plugin_name, router_name in plugins.items():
         try:
-            routers.append(getattr(__import__(f"{plugin_name}"), router_name))
+            module = importlib.import_module(plugin_name)
+            routers.append(getattr(module, router_name))
         except Exception as e:
             error(f"Failed to load plugin {plugin_name}: {e}")
     return routers
+
 

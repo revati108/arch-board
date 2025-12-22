@@ -4,17 +4,40 @@ Provides endpoints for reading and writing Hyprland config.
 """
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import os
 
 from utils.lib.hyprlang import HyprLang
 from utils.lib.hyprland_schema import get_schema
+from utils.config import get_context
+from utils.plugins_frontend import register_navigation, NavItem, NavGroup
+from xtracto import Parser
 
 hyprland_router = APIRouter(prefix="/hyprland", tags=["hyprland"])
 
+# Register navigation
+register_navigation(
+    items=[NavItem(id="hyprland", title="Hyprland", url="/hyprland", icon="config", group="config", order=10)],
+    groups=[NavGroup(id="config", title="Config", icon="config", order=10)]
+)
+
 # Default config path
 CONFIG_PATH = os.path.expanduser("~/.config/hypr/hyprland.conf")
+
+
+# Page route
+@hyprland_router.get("", response_class=HTMLResponse)
+async def hyprland_page():
+    parser = Parser(path="hyprland.pypx")
+    parser.render(context=get_context({
+        "current_page": "hyprland",
+        "page_title": "ArchBoard - Hyprland Config",
+        "page_header": "Hyprland Configuration",
+        "page_description": "Configure your Hyprland window manager",
+    }))
+    return HTMLResponse(parser.html_content)
 
 
 def to_hypr_value(value: Any) -> str:

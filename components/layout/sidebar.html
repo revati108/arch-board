@@ -11,76 +11,91 @@
     <span class="text-base font-semibold text-zinc-100">ArchBoard</span>
   </div>
 
-  <!-- Navigation -->
-  <nav class="flex-1 overflow-y-auto py-3 px-3 space-y-1">
-
-    <a href="/" class="sidebar-link {% if current_page == 'home' %}active{% endif %}">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-      </svg>
-      Dashboard
-    </a>
-
-    <!-- Config Section -->
-    <div class="pt-2">
-      <button onclick="toggleSection('config-menu', 'config-arrow')" class="sidebar-link w-full justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
-          Config
-        </div>
-        <svg id="config-arrow"
-          class="w-3 h-3 transition-transform duration-200 {% if current_page in ['hyprland', 'waybar', 'hyprlock', 'hypridle', 'wpaperd'] %} rotate-90 {% endif %}"
-          fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-
-      <div id="config-menu"
-        class="{% if current_page not in ['hyprland', 'waybar', 'hyprlock', 'hypridle', 'wpaperd'] %} hidden {% endif %} pl-6 mt-1 space-y-1">
-        <a href="/hyprland"
-          class="sidebar-sublink {% if current_page == 'hyprland' %} text-teal-500 bg-white/5 {% endif %}">hyprland</a>
-        <a href="/waybar"
-          class="sidebar-sublink {% if current_page == 'waybar' %} text-teal-500 bg-white/5 {% endif %}">waybar</a>
-        <a href="/hyprlock"
-          class="sidebar-sublink {% if current_page == 'hyprlock' %} text-teal-500 bg-white/5 {% endif %}">hyprlock</a>
-        <a href="/hypridle"
-          class="sidebar-sublink {% if current_page == 'hypridle' %} text-teal-500 bg-white/5 {% endif %}">hypridle</a>
-        <a href="/wpaperd"
-          class="sidebar-sublink {% if current_page == 'wpaperd' %} text-teal-500 bg-white/5 {% endif %}">wpaperd</a>
-      </div>
-    </div>
-
-    <a href="/system" class="sidebar-link {% if current_page == 'system' %}active{% endif %}">
-      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 01-2 2v4a2 2 0 012 2h14a2 2 0 012-2v-4a2 2 0 01-2-2m-2-4h.01M17 16h.01" />
-      </svg>
-      System
-    </a>
-
+  <!-- Navigation (rendered by JavaScript) -->
+  <nav id="sidebar-nav" class="flex-1 overflow-y-auto py-3 px-3 space-y-1">
+    <!-- Loading state -->
+    <div class="text-zinc-500 text-sm px-2">Loading...</div>
   </nav>
 
   <!-- User -->
   <div class="border-t border-zinc-800/30 p-3">
     <div class="flex items-center gap-2">
-      <div
+      <div id="user-avatar"
         class="w-7 h-7 rounded-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center text-white text-xs font-medium">
-        {{ username[0]|upper }}
+        ?
       </div>
       <div class="flex flex-col">
-        <span class="text-xs font-medium text-zinc-200">{{ username }}</span>
-        <span class="text-xs text-zinc-500">{{ username }}@arch</span>
+        <span id="user-name" class="text-xs font-medium text-zinc-200">...</span>
+        <span id="user-host" class="text-xs text-zinc-500">...@arch</span>
       </div>
     </div>
   </div>
 
   <script>
+    // Navigation data passed from Python
+    const archboardNav = {{ navigation | tojson | safe }};
+    const currentPage = '{{ current_page }}';
+    const username = '{{ username }}';
+
+    // Icon SVGs
+    const icons = {
+      dashboard: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>`,
+      system: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 01-2 2v4a2 2 0 012 2h14a2 2 0 012-2v-4a2 2 0 01-2-2m-2-4h.01M17 16h.01" />
+      </svg>`,
+      config: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>`,
+      default: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>`,
+      menu: `<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>`
+    };
+
+    function renderSidebar() {
+      const nav = document.getElementById('sidebar-nav');
+      let html = '';
+
+      archboardNav.forEach(item => {
+        if (item.type === 'item') {
+          const isActive = currentPage === item.id;
+          const icon = icons[item.icon] || icons.default;
+          html += `<a href="${item.url}" class="sidebar-link ${isActive ? 'active' : ''}">${icon}${item.title}</a>`;
+        } else if (item.type === 'group') {
+          const isExpanded = item.item_ids && item.item_ids.includes(currentPage);
+          const icon = icons[item.icon] || icons.menu;
+          const arrowClass = isExpanded ? 'rotate-90' : '';
+          const menuClass = isExpanded ? '' : 'hidden';
+
+          html += `
+            <div class="pt-2">
+              <button onclick="toggleSection('${item.id}-menu', '${item.id}-arrow')" class="sidebar-link w-full justify-between">
+                <div class="flex items-center gap-2">${icon}${item.title}</div>
+                <svg id="${item.id}-arrow" class="w-3 h-3 transition-transform duration-200 ${arrowClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <div id="${item.id}-menu" class="${menuClass} pl-6 mt-1 space-y-1">
+                ${item.items.map(sub => {
+            const subActive = currentPage === sub.id;
+            return `<a href="${sub.url}" class="sidebar-sublink ${subActive ? 'text-teal-500 bg-white/5' : ''}">${sub.title}</a>`;
+          }).join('')}
+              </div>
+            </div>`;
+        }
+      });
+
+      nav.innerHTML = html;
+    }
+
     function toggleSection(menuId, arrowId) {
       const menu = document.getElementById(menuId);
       const arrow = document.getElementById(arrowId);
@@ -90,6 +105,37 @@
       } else {
         menu.classList.add('hidden');
         arrow.classList.remove('rotate-90');
+      }
+    }
+
+    // Get first nav URL (for auto-redirect)
+    function getFirstNavUrl() {
+      if (!archboardNav || archboardNav.length === 0) return null;
+      const first = archboardNav[0];
+      if (first.type === 'item') {
+        return first.url;
+      } else if (first.type === 'group' && first.items && first.items.length > 0) {
+        return first.items[0].url;
+      }
+      return null;
+    }
+
+    // Set user info
+    document.getElementById('user-avatar').textContent = username[0].toUpperCase();
+    document.getElementById('user-name').textContent = username;
+    document.getElementById('user-host').textContent = username + '@arch';
+
+    // Render navigation
+    renderSidebar();
+
+    // Auto-redirect from root to first nav item if no 'home' page exists
+    if (window.location.pathname === '/' && currentPage === 'home') {
+      const homeItem = archboardNav.find(n => n.type === 'item' && n.id === 'home');
+      if (!homeItem) {
+        const firstUrl = getFirstNavUrl();
+        if (firstUrl && firstUrl !== '/') {
+          window.location.href = firstUrl;
+        }
       }
     }
   </script>

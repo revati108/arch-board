@@ -4,6 +4,7 @@ import os
 import time
 from version_info import VERSION
 import pwd
+from utils.plugins_frontend import frontend_registry
 
 
 def get_linux_username():
@@ -22,6 +23,9 @@ def get_linux_username():
 dotenv.load_dotenv()
 config = Config()
 def get_context(overrides: dict = None):
+    # Get navigation data for sidebar
+    nav_data = frontend_registry.get_navigation()
+    
     context = {
         "current_page": "home",
         "page_title": "Welcome to Arch Board",
@@ -30,6 +34,7 @@ def get_context(overrides: dict = None):
         "production": str(config.production).lower(),
         "username": os.environ.get("USER", get_linux_username()),
         "cache_key": VERSION if config.production else str(time.time()),
+        "navigation": nav_data["navigation"],  # For dynamic sidebar rendering
     }
     if overrides:
         context.update(overrides)
