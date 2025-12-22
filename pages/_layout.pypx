@@ -34,6 +34,7 @@ html
                 ;;class="page-content";;
                 {{children}}
             [[layout/footer.html]]
+        [[layout/search_modal.html]]
         div
             ;;id="toast-container" class="toast-container";;
         script

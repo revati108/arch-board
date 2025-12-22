@@ -1,3 +1,20 @@
+// Inject styles for highlight
+const style = document.createElement('style');
+style.textContent = `
+    .option-highlight {
+        animation: highlight-pulse 2s ease-out;
+        border-color: #2dd4bf !important; /* teal-400 */
+        background: rgba(45, 212, 191, 0.1);
+    }
+    @keyframes highlight-pulse {
+        0% { transform: scale(1); background: rgba(45, 212, 191, 0.3); }
+        50% { transform: scale(1.02); }
+        100% { transform: scale(1); background: rgba(45, 212, 191, 0.1); }
+    }
+    .hyprland-editor { /* ... existing styles ... */
+`;
+document.head.appendChild(style);
+
 // Hyprland Config Editor JavaScript
 
 let schema = [];
@@ -11,7 +28,33 @@ let gestures = [];
 let presets = [];
 let activePreset = null;
 let pendingChanges = {};
-let activeTab = localStorage.getItem('hyprland_active_tab') || 'general';
+// Check for tab param in URL first, then local storage, then default
+const urlParams = new URLSearchParams(window.location.search);
+let activeTab = urlParams.get('tab') || localStorage.getItem('hyprland_active_tab') || 'general';
+
+// Check if we need to highlight a specific section/option
+function checkHighlight() {
+    const selector = urlParams.get('highlight');
+    if (selector) {
+        // Wait for DOM update
+        setTimeout(() => {
+            // Note: selector comes from search, e.g. '[data-path="general:gaps_in"]'
+            // We need to support both ID selectors and attribute selectors
+            try {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Add highlight class
+                    el.classList.add('option-highlight');
+                    // Remove after 3s
+                    setTimeout(() => el.classList.remove('option-highlight'), 3000);
+                }
+            } catch (e) {
+                console.warn('Invalid highlight selector:', selector);
+            }
+        }, 100);
+    }
+}
 
 // Use shared settings from ArchBoard (defined in utils.js)
 // autosaveEnabled and toastsEnabled come from ArchBoard.settings
@@ -205,6 +248,8 @@ function renderTabContent(tabId) {
     const tab = schema.find(t => t.id === tabId);
     if (!tab) return;
     content.innerHTML = tab.sections.map(section => renderSection(section)).join('');
+
+    checkHighlight();
 }
 
 // =============================================================================

@@ -43,6 +43,20 @@ class NavGroup:
             "item_ids": [item.id for item in sorted_items]  # Pre-computed for template
         }
 
+@dataclass
+class SearchItem:
+    """A searchable item for the command palette."""
+    id: str
+    title: str
+    url: str
+    category: str = "General"
+    description: Optional[str] = None
+    keywords: List[str] = field(default_factory=list)
+    selector: Optional[str] = None  # CSS selector to highlight on the page
+    
+    def to_dict(self) -> dict:
+        return asdict(self)
+
 
 class FrontendRegistry:
     """
@@ -63,6 +77,7 @@ class FrontendRegistry:
         self._initialized = True
         self._groups: Dict[str, NavGroup] = {}
         self._top_level_items: List[NavItem] = []
+        self._search_items: List[SearchItem] = []
         # Note: Routers self-register their navigation items
     
     def register_nav_group(self, group: NavGroup):
@@ -83,6 +98,22 @@ class FrontendRegistry:
             self._groups[item.group].items.append(item)
         else:
             self._top_level_items.append(item)
+    
+    def register_search_item(self, item: SearchItem):
+        """Register a searchable item."""
+        # Check for duplicates by ID
+        for existing in self._search_items:
+            if existing.id == item.id:
+                # Update existing or ignore? Updating seems safer for reloads.
+                # Let's perform an update in place (replace fields) to ensure latest version.
+                existing.title = item.title
+                existing.url = item.url
+                existing.category = item.category
+                existing.description = item.description
+                existing.keywords = item.keywords
+                existing.selector = item.selector
+                return
+        self._search_items.append(item)
     
     def get_navigation(self) -> dict:
         """
@@ -133,6 +164,10 @@ class FrontendRegistry:
         for group in self._groups.values():
             ids.extend([item.id for item in group.items])
         return ids
+    
+    def get_search_index(self) -> List[dict]:
+        """Get the full search index."""
+        return [item.to_dict() for item in self._search_items]
 
 
 # Singleton instance
@@ -155,3 +190,9 @@ def register_navigation(items: List[NavItem], groups: List[NavGroup] = None):
             frontend_registry.register_nav_group(group)
     for item in items:
         frontend_registry.register_nav_item(item)
+
+
+def register_search(items: List[SearchItem]):
+    """Helper function to register search items."""
+    for item in items:
+        frontend_registry.register_search_item(item)

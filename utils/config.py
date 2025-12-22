@@ -35,6 +35,7 @@ def get_context(overrides: dict = None):
         "username": os.environ.get("USER", get_linux_username()),
         "cache_key": VERSION if config.production else str(time.time()),
         "navigation": nav_data["navigation"],  # For dynamic sidebar rendering
+        "search_index": frontend_registry.get_search_index(),
     }
     if overrides:
         context.update(overrides)

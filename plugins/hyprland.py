@@ -12,7 +12,7 @@ import os
 from utils.lib.hyprlang import HyprLang
 from utils.lib.hyprland_schema import get_schema
 from utils.config import get_context
-from utils.plugins_frontend import register_navigation, NavItem, NavGroup
+from utils.plugins_frontend import register_navigation, NavItem, NavGroup, register_search, SearchItem
 from xtracto import Parser
 
 hyprland_router = APIRouter(prefix="/hyprland", tags=["hyprland"])
@@ -22,6 +22,73 @@ register_navigation(
     items=[NavItem(id="hyprland", title="Hyprland", url="/hyprland", icon="hyprland", group="config", order=10)],
     groups=[NavGroup(id="config", title="Config", icon="config", order=10)]
 )
+
+from utils.lib.hyprland_schema import HYPRLAND_SCHEMA
+
+# Generate search items from schema
+search_items = []
+
+# 1. Schema Items (Granular options)
+for tab in HYPRLAND_SCHEMA:
+    # Add the tab itself
+    search_items.append(SearchItem(
+        id=f"hyprland-tab-{tab.id}",
+        title=f"{tab.title} Settings",
+        url=f"/hyprland?tab={tab.id}",
+        category=f"Hyprland: {tab.title}",
+        description=f"Configure {tab.title.lower()} settings",
+        keywords=[tab.title.lower(), "settings", "config"]
+    ))
+    
+    # Add options
+    for section in tab.sections:
+        for option in section.options:
+            # Format title: "general:border_size" -> "Border Size"
+            base_title = option.name.replace("_", " ").title()
+            
+            # Use section title for context to avoid duplicates (e.g., "Natural Scroll" in Mouse vs Touchpad)
+            # If section name is like "input:touchpad", title is "Touchpad"
+            # If section name is just "general", title is "General Settings" -> maybe redundant if we just say "Border Size"?
+            # A good heuristic: if the section title is specific (not "General Settings"), prepend it.
+            
+            start_context = ""
+            if section.title and "General" not in section.title and "Miscellaneous" not in section.title:
+                 start_context = f"{section.title}: "
+            
+            formatted_title = f"{start_context}{base_title}"
+            
+            search_items.append(SearchItem(
+                id=f"hyprland-opt-{section.name}-{option.name}",
+                title=formatted_title,
+                url=f"/hyprland?tab={tab.id}", # Highlight param added via wrapper or selector
+                category=f"Hyprland: {tab.title}", # Explicit namespace
+                description=option.description, # Use schema description!
+                keywords=option.name.split("_") + [tab.title.lower(), section.title.lower()],
+                selector=f'[data-path="{section.name}:{option.name}"]' # Deep link selector
+            ))
+
+# 2. Special Tabs (Manual)
+special_tabs = [
+    ("monitors", "Monitors", "Configure displays, resolution, positioning"),
+    ("binds", "Keybinds", "Manage keyboard shortcuts and hotkeys"),
+    ("gestures", "Gestures", "Touchpad and touchscreen gestures"),
+    ("windowrules", "Window Rules", "Window placement and opacity rules"),
+    ("exec", "Startup Commands", "Autostart applications and scripts"),
+    ("env", "Environment Variables", "Session environment variables (QT, GTK, etc)")
+]
+
+for tab_id, title, desc in special_tabs:
+    search_items.append(SearchItem(
+        id=f"hyprland-special-{tab_id}",
+        title=title,
+        url=f"/hyprland?tab={tab_id}",
+        category=f"Hyprland: {title}",
+        description=desc,
+        keywords=[title.lower(), "settings", "config"]
+    ))
+
+# Register all items
+register_search(search_items)
 
 # Default config path
 CONFIG_PATH = os.path.expanduser("~/.config/hypr/hyprland.conf")
