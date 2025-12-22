@@ -31,6 +31,22 @@ authtuna>=0.2.2
 
 ## Installation
 
+The easiest way to install ArchBoard is using our automated installer script.
+
+**Using curl (Recommended)**:
+```bash
+bash <(curl -s https://raw.githubusercontent.com/shashstormer/arch-board/main/install.sh)
+```
+
+**Using git**:
+```bash
+git clone https://github.com/shashstormer/arch-board
+cd arch-board
+./install.sh
+```
+
+**Manual Installation**:
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/shashstormer/arch-board
