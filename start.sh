@@ -1,14 +1,19 @@
 #!/bin/bash
 
 # ArchBoard Startup Script
-# Starts both the main app in separate foot terminal
+# This script is a template. The installer will overwrite/configure it.
+# Fallback behavior for manual execution:
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+echo "Starting ArchBoard from $DIR..."
 
-echo "Starting ArchBoard..."
+if [ -f "$DIR/update.sh" ]; then
+    "$DIR/update.sh" "$@"
+fi
 
-# Start the main app in a new foot terminal
-foot -T "ArchBoard - Main" bash -c "cd '$DIR' && python main.py; read -p 'Press enter to close...'" &
+# Check for venv
+if [ -d "$DIR/venv" ]; then
+    source "$DIR/venv/bin/activate"
+fi
 
-echo "ArchBoard started!"
-echo "  - Main app: http://localhost:5000"
+exec python3 "$DIR/main.py"
