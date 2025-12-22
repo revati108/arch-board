@@ -6,7 +6,7 @@ from utils.config import RELOAD_SERVER, config
 from routers import static_router, pages_router, system_router, hyprland_router, presets_router
 from utils.lib.background import bg_service, register_default_tasks
 from xtracto import Builder
-
+from utils.plugins import get_routers
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -19,12 +19,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(docs_url=None, redoc_url=None, lifespan=lifespan)
 init_app(app)
-app.include_router(static_router)
-app.include_router(pages_router)
-app.include_router(system_router)
-app.include_router(hyprland_router)
-app.include_router(presets_router)
-
+for router in get_routers():
+    app.include_router(router)
 
 if __name__ == "__main__":
     import uvicorn
