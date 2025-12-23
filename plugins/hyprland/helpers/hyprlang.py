@@ -937,16 +937,18 @@ class Parser:
 class HyprLang:
     """Main interface for parsing hyprlang config files."""
     
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, limit=100000):
         self.file_path = file_path
         self.config: Optional[HyprConf] = None
+        self.limit = limit
     
     def load(self) -> HyprConf:
         """Load and parse the config file."""
         abs_path = os.path.abspath(self.file_path)
         with open(abs_path, 'r') as f:
             text = f.read()
-        
+        if len(text) > self.limit:
+            raise Exception(f"Config file '{self.file_path}' is too large (limit: {self.limit} chars)")
         # Initialize parsed_files set with the main file to prevent circular inclusion
         parsed_files: Set[str] = {abs_path}
         return self.parse(text, base_dir=os.path.dirname(abs_path), parsed_files=parsed_files)
@@ -970,7 +972,7 @@ class HyprLang:
             raise ValueError("No config loaded")
         
         output = self.config.to_string()
-        if len(output) > 100000:
+        if len(output) > self.limit:
             raise ValueError("Parser May have Bug raising error to prevent writes to disk wasting write cycles.")
         target = path or self.file_path
         with open(target, 'w') as f:
