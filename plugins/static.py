@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.exceptions import HTTPException
 from utils.tailwind import generate_tailwind_css
 from xtracto import Config
@@ -12,6 +12,7 @@ static_router = APIRouter()
 
 @static_router.get("/tailwind.css")
 async def get_output():
+    return Response("")
     if not config.production:
         generate_tailwind_css()
     return FileResponse("assets/css/tailwind.css", media_type="text/css")

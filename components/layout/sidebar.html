@@ -108,7 +108,7 @@
                 ${item.items.map(sub => {
             const subActive = currentPage === sub.id;
             const subIcon = sub.icon_svg || icons[sub.icon] || icons.default;
-            return `<a href="${sub.url}" class="flex items-center justify-center sidebar-sublink ${subActive ? 'text-teal-500 bg-white/5' : ''} flex items-center gap-2">
+            return `<a href="${sub.url}" class="flex items-center sidebar-sublink ${subActive ? 'text-teal-500 bg-white/5' : ''} flex items-center gap-2">
               ${subIcon}
               ${sub.title}
             </a>`;

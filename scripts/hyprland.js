@@ -11,7 +11,6 @@ style.textContent = `
         50% { transform: scale(1.02); }
         100% { transform: scale(1); background: rgba(45, 212, 191, 0.1); }
     }
-    .hyprland-editor { /* ... existing styles ... */
 `;
 document.head.appendChild(style);
 

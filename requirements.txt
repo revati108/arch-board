@@ -1,4 +1,4 @@
-xtracto==0.0.10
+xtracto==0.0.11
 pytailwind==0.0.7
 requestez==0.1.13
 authtuna>=0.2.2
