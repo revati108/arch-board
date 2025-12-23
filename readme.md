@@ -35,7 +35,7 @@ The easiest way to install ArchBoard is using our automated installer script.
 
 **Using curl (Recommended)**:
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/shashstormer/arch-board/main/install.sh)
+bash <(curl -s https://raw.githubusercontent.com/shashstormer/arch-board/master/install.sh)
 ```
 
 **Using git**:
