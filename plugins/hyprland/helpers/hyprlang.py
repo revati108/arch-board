@@ -970,6 +970,8 @@ class HyprLang:
             raise ValueError("No config loaded")
         
         output = self.config.to_string()
+        if len(output) > 100000:
+            raise ValueError("Parser May have Bug raising error to prevent writes to disk wasting write cycles.")
         target = path or self.file_path
         with open(target, 'w') as f:
             f.write(output)

@@ -301,7 +301,10 @@ class Printer:
     def to_string(self, root):
         self.output = []
         self.print_node(root)
-        return "".join(self.output)
+        final_output = "".join(self.output)
+        if len(final_output) > 100000:
+            raise ValueError("Parser May have Bug raising error to prevent writes to disk wasting write cycles.")
+        return final_output
 
 
 def parse(text):
