@@ -261,11 +261,17 @@ class Parser:
 
 
 class Printer:
-    def __init__(self):
+    def __init__(self, limit=100000):
         self.output = []
+        self.limit = limit
+        self.length = 0
 
     def write(self, text):
+        chunk_len = len(text)
+        if self.length + chunk_len > self.limit:
+            raise ValueError(f"Config size limit exceeded ({self.limit} chars). Aborting write to prevent disk bloat.")
         self.output.append(text)
+        self.length += chunk_len
 
     def print_trivia(self, trivia_list):
         for t in trivia_list:
@@ -302,7 +308,7 @@ class Printer:
         self.output = []
         self.print_node(root)
         final_output = "".join(self.output)
-        if len(final_output) > 100000:
+        if len(final_output) > self.limit:
             raise ValueError("Parser May have Bug raising error to prevent writes to disk wasting write cycles.")
         return final_output
 
