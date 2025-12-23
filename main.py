@@ -1,11 +1,15 @@
-from logging import basicConfig, DEBUG
+import os.path
+import shutil
 from contextlib import asynccontextmanager
+
 from authtuna import init_app
 from fastapi import FastAPI
+from xtracto import Builder
+
 from utils.config import RELOAD_SERVER, config
 from utils.lib.background import bg_service, register_default_tasks
-from xtracto import Builder
 from utils.plugins import get_routers
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,6 +28,8 @@ for router in get_routers():
 if __name__ == "__main__":
     import uvicorn
     if config.production:
+        if os.path.exists(config.build_dir):
+            shutil.rmtree(os.path.abspath(config.build_dir))
         Builder().build()
     uvicorn.run(
         "main:app", host="0.0.0.0", port=5000, reload=RELOAD_SERVER,
