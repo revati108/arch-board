@@ -12,10 +12,8 @@ import subprocess
 
 from utils.lib.presets import PresetManager, Preset
 
-
 # Create router
 presets_router = APIRouter(prefix="/presets", tags=["presets"])
-
 
 # =============================================================================
 # PRESET MANAGERS REGISTRY
@@ -23,6 +21,7 @@ presets_router = APIRouter(prefix="/presets", tags=["presets"])
 
 # Registry of preset managers for different tools
 _managers = {}
+
 
 def get_manager(tool: str) -> PresetManager:
     """Get or create a PresetManager for a specific tool."""
@@ -53,7 +52,7 @@ def get_manager(tool: str) -> PresetManager:
             )
         else:
             raise HTTPException(status_code=400, detail=f"Unknown tool: {tool}")
-    
+
     return _managers[tool]
 
 
@@ -66,14 +65,17 @@ class PresetCreate(BaseModel):
     name: str
     description: str = ""
 
+
 class PresetUpdate(BaseModel):
     """Request model for updating a preset."""
     name: Optional[str] = None
     description: Optional[str] = None
 
+
 class PresetActivate(BaseModel):
     """Request model for activating a preset."""
     backup_current: bool = True
+
 
 class PresetResponse(BaseModel):
     """Response model for a preset."""
@@ -84,6 +86,7 @@ class PresetResponse(BaseModel):
     updated_at: str
     is_active: bool
     tool: str
+
 
 class PresetsListResponse(BaseModel):
     """Response model for listing presets."""
@@ -102,7 +105,7 @@ async def list_presets(tool: str) -> PresetsListResponse:
         manager = get_manager(tool)
         presets = manager.list_presets()
         active = manager.get_active_preset()
-        
+
         return PresetsListResponse(
             presets=[PresetResponse(**p.to_dict()) for p in presets],
             active_preset=active
@@ -130,10 +133,10 @@ async def get_preset(tool: str, preset_id: str) -> PresetResponse:
     try:
         manager = get_manager(tool)
         preset = manager.get_preset(preset_id)
-        
+
         if not preset:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         return PresetResponse(**preset.to_dict())
     except HTTPException:
         raise
@@ -147,10 +150,10 @@ async def update_preset(tool: str, preset_id: str, data: PresetUpdate) -> Preset
     try:
         manager = get_manager(tool)
         preset = manager.update_preset(preset_id, data.name, data.description)
-        
+
         if not preset:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         return PresetResponse(**preset.to_dict())
     except HTTPException:
         raise
@@ -164,10 +167,10 @@ async def delete_preset(tool: str, preset_id: str):
     try:
         manager = get_manager(tool)
         success = manager.delete_preset(preset_id)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         return {"success": True, "message": f"Preset '{preset_id}' deleted"}
     except HTTPException:
         raise
@@ -184,10 +187,10 @@ async def activate_preset(tool: str, preset_id: str, data: PresetActivate = Pres
     try:
         manager = get_manager(tool)
         success = manager.activate_preset(preset_id, backup_current=data.backup_current)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         # Trigger reload for supported tools
         reload_result = None
         if tool == "hyprland":
@@ -200,9 +203,9 @@ async def activate_preset(tool: str, preset_id: str, data: PresetActivate = Pres
                 }
             except Exception:
                 reload_result = {"reloaded": False, "error": "hyprctl not available"}
-        
+
         return {
-            "success": True, 
+            "success": True,
             "message": f"Preset '{preset_id}' activated",
             "reload": reload_result
         }
@@ -218,10 +221,10 @@ async def update_preset_content(tool: str, preset_id: str):
     try:
         manager = get_manager(tool)
         success = manager.update_preset_content(preset_id)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         return {"success": True, "message": f"Preset '{preset_id}' content updated"}
     except FileNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -235,10 +238,10 @@ async def get_preset_content(tool: str, preset_id: str):
     try:
         manager = get_manager(tool)
         content = manager.get_preset_content(preset_id)
-        
+
         if content is None:
             raise HTTPException(status_code=404, detail="Preset not found")
-        
+
         return {"content": content}
     except HTTPException:
         raise
@@ -252,10 +255,10 @@ async def restore_backup(tool: str):
     try:
         manager = get_manager(tool)
         success = manager.restore_backup()
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="No backup found")
-        
+
         # Trigger reload for supported tools
         reload_result = None
         if tool == "hyprland":
@@ -264,9 +267,9 @@ async def restore_backup(tool: str):
                 reload_result = {"reloaded": result.returncode == 0}
             except Exception:
                 reload_result = {"reloaded": False}
-        
+
         return {
-            "success": True, 
+            "success": True,
             "message": "Backup restored",
             "reload": reload_result
         }
