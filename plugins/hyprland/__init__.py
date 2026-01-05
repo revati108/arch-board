@@ -395,6 +395,119 @@ async def get_windowrules():
 
 
 # =============================================================================
+# LAYER RULES
+# =============================================================================
+
+@hyprland_router.get("/layerrules")
+async def get_layerrules():
+    """Get all layer rule configurations."""
+    if not os.path.exists(CONFIG_PATH):
+        raise HTTPException(status_code=404, detail="Hyprland config not found")
+
+    try:
+        hl = HyprLang(CONFIG_PATH)
+        conf = hl.load()
+
+        rules = []
+        for line in conf.lines:
+            if line.key == "layerrule":
+                # Parse: effect, namespace (legacy) or effect on, match:namespace ns (new)
+                raw = line.value.raw
+                parts = [p.strip() for p in raw.split(",", 1)]
+                
+                effect = parts[0] if len(parts) > 0 else ""
+                namespace = ""
+                
+                if len(parts) > 1:
+                    match_part = parts[1]
+                    if "match:namespace" in match_part.lower():
+                        # New syntax: extract namespace from match:namespace value
+                        idx = match_part.lower().find("match:namespace")
+                        rest = match_part[idx + 15:].strip()
+                        namespace = rest.split(",")[0].strip()
+                    else:
+                        # Legacy syntax
+                        namespace = match_part.strip()
+                
+                rules.append({
+                    "raw": raw,
+                    "effect": effect,
+                    "namespace": namespace
+                })
+
+        return {"layerrules": rules}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class LayerRuleUpdate(BaseModel):
+    """Request model for layer rule updates."""
+    action: str  # "add", "update", "delete"
+    effect: str
+    namespace: str
+    old_raw: Optional[str] = None
+
+
+@hyprland_router.post("/layerrules")
+async def update_layer_rule(update: LayerRuleUpdate):
+    """Add, update, or delete a layer rule."""
+    if not os.path.exists(CONFIG_PATH):
+        raise HTTPException(status_code=404, detail="Hyprland config not found")
+
+    try:
+        with open(CONFIG_PATH, 'r') as f:
+            lines = f.readlines()
+
+        # Check if we should use new syntax (check migration status)
+        hl = HyprLang(CONFIG_PATH)
+        conf = hl.load()
+        
+        # Detect syntax style from existing rules
+        use_new_syntax = False
+        for line in conf.lines:
+            if line.key == "layerrule" and "match:" in line.value.raw:
+                use_new_syntax = True
+                break
+        
+        # Build the new line based on syntax
+        if use_new_syntax:
+            # New syntax: effect on, match:namespace namespace
+            effect_part = update.effect
+            if " " not in effect_part:
+                effect_part = f"{effect_part} on"
+            new_line = f"layerrule = {effect_part}, match:namespace {update.namespace}\n"
+        else:
+            # Legacy syntax: effect, namespace
+            new_line = f"layerrule = {update.effect}, {update.namespace}\n"
+
+        if update.action == "add":
+            # Find where to insert (after other layerrule lines or at appropriate spot)
+            insert_idx = len(lines)
+            for i, line in enumerate(lines):
+                if line.strip().startswith("layerrule"):
+                    insert_idx = i + 1
+            lines.insert(insert_idx, new_line)
+
+        elif update.action == "update":
+            if update.old_raw:
+                for i, line in enumerate(lines):
+                    if update.old_raw in line:
+                        lines[i] = new_line
+                        break
+
+        elif update.action == "delete":
+            if update.old_raw:
+                lines = [l for l in lines if update.old_raw not in l]
+
+        with open(CONFIG_PATH, 'w') as f:
+            f.writelines(lines)
+
+        return {"success": True, "action": update.action}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
 # EXEC COMMANDS
 # =============================================================================
 
@@ -830,5 +943,99 @@ async def update_gesture(update: GestureUpdate):
             f.writelines(lines)
 
         return {"success": True, "action": update.action}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# CONFIG MIGRATION (v0.53+ new window rule syntax)
+# =============================================================================
+
+from plugins.hyprland.helpers.migration import HyprlandVersion, ConfigMigrator, MigrationResult
+from pathlib import Path
+
+
+@hyprland_router.get("/migration/version")
+async def get_hyprland_version():
+    """Get the detected Hyprland version."""
+    version = HyprlandVersion.detect()
+    if version:
+        return {
+            "version": str(version),
+            "major": version.major,
+            "minor": version.minor,
+            "patch": version.patch,
+            "supports_new_window_rules": version.supports_new_window_rules()
+        }
+    return {"version": None, "error": "Could not detect Hyprland version"}
+
+
+@hyprland_router.get("/migration/status")
+async def get_migration_status():
+    """Check if config needs migration and return summary."""
+    if not os.path.exists(CONFIG_PATH):
+        raise HTTPException(status_code=404, detail="Hyprland config not found")
+
+    try:
+        hl = HyprLang(CONFIG_PATH)
+        conf = hl.load()
+
+        needs_migration = ConfigMigrator.needs_migration(conf)
+        summary = ConfigMigrator.get_migration_summary(conf) if needs_migration else ""
+
+        # Get version info
+        version = HyprlandVersion.detect()
+        version_info = None
+        if version:
+            version_info = {
+                "version": str(version),
+                "supports_new_window_rules": version.supports_new_window_rules()
+            }
+
+        return {
+            "needs_migration": needs_migration,
+            "summary": summary,
+            "version": version_info,
+            "config_path": CONFIG_PATH
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@hyprland_router.post("/migration/migrate")
+async def migrate_config():
+    """Perform migration with automatic backup."""
+    if not os.path.exists(CONFIG_PATH):
+        raise HTTPException(status_code=404, detail="Hyprland config not found")
+
+    try:
+        hl = HyprLang(CONFIG_PATH)
+        conf = hl.load()
+
+        if not ConfigMigrator.needs_migration(conf):
+            return {
+                "success": True,
+                "migrated": False,
+                "message": "Config is already using new syntax"
+            }
+
+        # Create backup
+        config_path = Path(CONFIG_PATH)
+        backup_path = ConfigMigrator.backup_config(config_path)
+
+        # Perform migration
+        result = ConfigMigrator.migrate(conf)
+
+        # Save migrated config
+        hl.save()
+
+        return {
+            "success": True,
+            "migrated": True,
+            "migrated_rules": result.migrated_rules,
+            "renamed_options": result.renamed_options,
+            "backup_path": str(backup_path),
+            "message": f"Migrated {result.migrated_rules} rules, renamed {result.renamed_options} options. Backup saved to {backup_path.name}"
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

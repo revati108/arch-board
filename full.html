@@ -3900,12 +3900,14 @@ let config = {};
 let monitors = [];
 let binds = [];
 let windowrules = [];
+let layerrules = [];
 let execCommands = [];
 let envVars = [];
 let gestures = [];
 let presets = [];
 let activePreset = null;
 let pendingChanges = {};
+let migrationStatus = null;
 // Check for tab param in URL first, then local storage, then default
 const urlParams = new URLSearchParams(window.location.search);
 let activeTab = urlParams.get('tab') || localStorage.getItem('hyprland_active_tab') || 'general';
@@ -3944,6 +3946,7 @@ const SPECIAL_TABS = [
     { id: 'binds', title: 'Keybinds', icon: '⌨️' },
     { id: 'gestures', title: 'Gestures', icon: '👆' },
     { id: 'windowrules', title: 'Window Rules', icon: '🪟' },
+    { id: 'layerrules', title: 'Layer Rules', icon: '📐' },
     { id: 'exec', title: 'Startup', icon: '🚀' },
     { id: 'env', title: 'Environment', icon: '🌍' }
 ];
@@ -3959,15 +3962,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadMonitors(),
         loadBinds(),
         loadWindowRules(),
+        loadLayerRules(),
         loadExec(),
         loadEnv(),
         loadGestures(),
-        loadPresets()
+        loadPresets(),
+        checkMigrationStatus()
     ]);
     renderTabs();
     renderTabContent(activeTab);
     renderPresetSelector();
+
+    // Show migration modal if needed
+    if (migrationStatus && migrationStatus.needs_migration &&
+        migrationStatus.version && migrationStatus.version.supports_new_window_rules) {
+        showMigrationModal();
+    }
 });
+
 
 // Getter for autosave status (uses shared ArchBoard settings)
 function isAutosaveEnabled() {
@@ -4056,9 +4068,82 @@ async function loadGestures() {
     }
 }
 
+async function loadLayerRules() {
+    try {
+        const response = await fetch('/hyprland/layerrules');
+        const data = await response.json();
+        layerrules = data.layerrules || [];
+    } catch (error) {
+        console.error('Failed to load layer rules:', error);
+    }
+}
+
+async function checkMigrationStatus() {
+    try {
+        const response = await fetch('/hyprland/migration/status');
+        migrationStatus = await response.json();
+    } catch (error) {
+        console.error('Failed to check migration status:', error);
+        migrationStatus = null;
+    }
+}
+
+function showMigrationModal() {
+    const versionStr = migrationStatus.version?.version || 'v0.53.0+';
+    openModal(`
+        <div class="text-center mb-4">
+            <span class="text-4xl">🔄</span>
+        </div>
+        <h3 class="text-xl font-bold text-zinc-100 mb-4 text-center">Hyprland Upgrade Detected</h3>
+        <p class="text-zinc-400 mb-4 text-center">
+            You are running Hyprland <strong class="text-teal-400">${versionStr}</strong>. 
+            Your config uses legacy window/layer rule syntax.
+        </p>
+        <div class="bg-zinc-800/50 rounded-lg p-4 mb-4">
+            <h4 class="text-sm font-semibold text-zinc-300 mb-2">Changes detected:</h4>
+            <pre class="text-xs text-zinc-500 whitespace-pre-wrap">${migrationStatus.summary || 'Legacy rules found'}</pre>
+        </div>
+        <p class="text-zinc-500 text-sm mb-6 text-center">
+            Would you like to migrate to the new window rule syntax? A backup will be created.
+        </p>
+        <div class="flex justify-center gap-3">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">
+                Skip (Keep Legacy)
+            </button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="runMigration()">
+                Migrate Config
+            </button>
+        </div>
+    `);
+}
+
+async function runMigration() {
+    try {
+        const response = await fetch('/hyprland/migration/migrate', { method: 'POST' });
+        const result = await response.json();
+
+        if (result.success && result.migrated) {
+            closeModal();
+            showToast(`Migrated ${result.migrated_rules} rules. Backup: ${result.backup_path}`, 'success');
+            // Reload data
+            await Promise.all([loadWindowRules(), loadLayerRules(), loadConfig()]);
+            renderTabContent(activeTab);
+        } else if (result.success && !result.migrated) {
+            closeModal();
+            showToast('Config already using new syntax', 'info');
+        } else {
+            showToast('Migration failed', 'error');
+        }
+    } catch (error) {
+        console.error('Migration failed:', error);
+        showToast('Migration failed', 'error');
+    }
+}
+
 // =============================================================================
 // TAB RENDERING
 // =============================================================================
+
 
 function renderTabs() {
     const nav = document.getElementById('tab-nav');
@@ -4119,6 +4204,9 @@ function renderTabContent(tabId) {
             return;
         case 'windowrules':
             content.innerHTML = renderWindowRulesTab();
+            return;
+        case 'layerrules':
+            content.innerHTML = renderLayerRulesTab();
             return;
         case 'exec':
             content.innerHTML = renderExecTab();
@@ -4279,6 +4367,42 @@ function renderWindowRulesTab() {
         </div>
     `;
 }
+
+function renderLayerRulesTab() {
+    return `
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Layer Rules (${layerrules.length})</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddLayerRuleModal()">+ Add Layer Rule</button>
+            </div>
+            <div class="p-2">
+            ${layerrules.length === 0 ? '<p class="text-center text-zinc-500 p-8">No layer rules configured. Layer rules affect surfaces like waybar, rofi, notifications, etc.</p>' :
+            layerrules.map(r => `
+                    <div class="flex items-center gap-3 p-2.5 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/40">
+                        <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-purple-500 font-mono">layerrule</code>
+                        <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
+                        <span class="text-zinc-500 text-xs">→ ${r.namespace}</span>
+                        <div class="ml-auto flex gap-2">
+                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditLayerRuleModal('${r.effect.replace(/'/g, "\\'")}', '${r.namespace.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteLayerRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        <div class="bg-zinc-800/30 rounded-lg p-4 text-sm text-zinc-500">
+            <strong class="text-zinc-400">💡 Common Layer Rules:</strong>
+            <ul class="mt-2 space-y-1">
+                <li><code class="text-teal-500">blur</code> - Apply blur effect to layer surface</li>
+                <li><code class="text-teal-500">ignorezero</code> - Ignore fully transparent pixels</li>
+                <li><code class="text-teal-500">ignorealpha 0.5</code> - Ignore pixels with alpha below threshold</li>
+                <li><code class="text-teal-500">animation slide</code> - Set animation style (slide, popin, fade)</li>
+                <li><code class="text-teal-500">noanim</code> - Disable animations</li>
+            </ul>
+        </div>
+    `;
+}
+
 
 function renderExecTab() {
     const execOnce = execCommands.filter(c => c.type === 'exec-once');
@@ -5166,6 +5290,149 @@ async function updateWindowRule(oldRaw) {
     } catch (e) {
         showToast('Failed to update', 'error');
     }
+}
+
+// =============================================================================
+// LAYER RULES CRUD
+// =============================================================================
+
+function showAddLayerRuleModal() {
+    openModal(`
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Add Layer Rule</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+        </div>
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
+                <select id="layerrule-effect" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                    <option value="blur">blur - Apply blur effect</option>
+                    <option value="ignorezero">ignorezero - Ignore transparent pixels</option>
+                    <option value="ignorealpha 0.5">ignorealpha 0.5 - Ignore low alpha</option>
+                    <option value="noanim">noanim - Disable animations</option>
+                    <option value="animation slide">animation slide - Slide animation</option>
+                    <option value="animation popin">animation popin - Pop-in animation</option>
+                    <option value="animation fade">animation fade - Fade animation</option>
+                    <option value="dimaround">dimaround - Dim around layer</option>
+                    <option value="xray 1">xray - See through layer</option>
+                </select>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Namespace (Layer Surface)</label>
+                <input type="text" id="layerrule-namespace" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., waybar, rofi, swaync">
+                <small class="text-zinc-500 mt-1 block">Common namespaces: waybar, rofi, wofi, swaync, gtk-layer-shell</small>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addLayerRule()">Add</button>
+        </div>
+    `);
+}
+
+async function addLayerRule() {
+    const effect = document.getElementById('layerrule-effect').value;
+    const namespace = document.getElementById('layerrule-namespace').value.trim();
+
+    if (!namespace) {
+        return showToast('Please enter a namespace', 'error');
+    }
+
+    try {
+        await fetch('/hyprland/layerrules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'add',
+                effect,
+                namespace
+            })
+        });
+        closeModal();
+        await loadLayerRules();
+        renderTabContent('layerrules');
+        showToast('Layer rule added', 'success');
+    } catch (e) {
+        showToast('Failed to add', 'error');
+    }
+}
+
+function showEditLayerRuleModal(effect, namespace, raw) {
+    const escapedEffect = effect.replace(/"/g, '&quot;');
+    const escapedNamespace = namespace.replace(/"/g, '&quot;');
+    const escapedRaw = raw.replace(/'/g, "\\'");
+
+    openModal(`
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Edit Layer Rule</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+        </div>
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
+                <input type="text" id="layerrule-effect" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedEffect}">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Namespace</label>
+                <input type="text" id="layerrule-namespace" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedNamespace}">
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateLayerRule('${escapedRaw}')">Save</button>
+        </div>
+    `);
+}
+
+async function updateLayerRule(oldRaw) {
+    const effect = document.getElementById('layerrule-effect').value;
+    const namespace = document.getElementById('layerrule-namespace').value.trim();
+
+    try {
+        await fetch('/hyprland/layerrules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'update',
+                effect,
+                namespace,
+                old_raw: oldRaw
+            })
+        });
+        closeModal();
+        await loadLayerRules();
+        renderTabContent('layerrules');
+        showToast('Layer rule updated', 'success');
+    } catch (e) {
+        showToast('Failed to update', 'error');
+    }
+}
+
+async function deleteLayerRule(raw) {
+    try {
+        await fetch('/hyprland/layerrules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete',
+                effect: '',
+                namespace: '',
+                old_raw: raw
+            })
+        });
+        await loadLayerRules();
+        renderTabContent('layerrules');
+        showToast('Layer rule deleted', 'success');
+    } catch (e) {
+        showToast('Failed to delete', 'error');
+    }
+}
+
+function confirmDeleteLayerRule(raw) {
+    const escapedRaw = raw.replace(/'/g, "\\'");
+    confirmDialog('Delete Layer Rule',
+        'Are you sure you want to delete this layer rule?',
+        `function() {deleteLayerRule('${escapedRaw}')}`);
 }
 
 // =============================================================================
