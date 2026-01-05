@@ -234,7 +234,25 @@ class TestConfigMigrator:
         result = ConfigMigrator.migrate(conf)
         
         assert result.renamed_options == 1
-        assert conf.lines[0].key == "misc:new_window_takes_over_fs"
+        assert conf.lines[0].key == "misc:on_focus_under_fullscreen"
+    
+    def test_needs_migration_master_inherit_fullscreen(self):
+        """Test master:inherit_fullscreen triggers migration."""
+        conf = self._make_conf([
+            ("master:inherit_fullscreen", "1")
+        ])
+        assert ConfigMigrator.needs_migration(conf)
+    
+    def test_migrate_master_inherit_fullscreen(self):
+        """Test renaming master:inherit_fullscreen -> misc:on_focus_under_fullscreen."""
+        conf = self._make_conf([
+            ("master:inherit_fullscreen", "1")
+        ])
+        result = ConfigMigrator.migrate(conf)
+        
+        assert result.renamed_options == 1
+        assert conf.lines[0].key == "misc:on_focus_under_fullscreen"
+        assert conf.lines[0].value.raw == "1"
     
     def test_migrate_move_cursor_percentage(self):
         """Test migrating move onscreen cursor with percentage."""

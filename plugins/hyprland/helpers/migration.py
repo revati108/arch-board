@@ -5,7 +5,8 @@ Supports:
 - windowrulev2 -> windowrule (new syntax)
 - Legacy windowrule -> windowrule (new syntax)
 - layerrule -> layerrule (new syntax)
-- misc:new_window_takes_over_fullscreen -> misc:new_window_takes_over_fs
+- misc:new_window_takes_over_fullscreen -> misc:on_focus_under_fullscreen
+- master:inherit_fullscreen -> misc:on_focus_under_fullscreen
 """
 
 from __future__ import annotations
@@ -142,8 +143,12 @@ class ConfigMigrator:
             if key_lower == 'layerrule' and 'match:' not in line.value.raw:
                 return True
             
-            # Check for old option name
+            # Check for old option names
             if 'new_window_takes_over_fullscreen' in key_lower:
+                return True
+            
+            # master:inherit_fullscreen is also replaced by misc:on_focus_under_fullscreen
+            if key_lower == 'master:inherit_fullscreen':
                 return True
         
         return False
@@ -320,12 +325,14 @@ class ConfigMigrator:
                     
                     migrated_rules += 1
             
-            # Rename misc:new_window_takes_over_fullscreen
+            # Rename misc:new_window_takes_over_fullscreen -> misc:on_focus_under_fullscreen
             if 'misc:new_window_takes_over_fullscreen' in line.key.lower():
-                line.key = line.key.replace(
-                    'new_window_takes_over_fullscreen',
-                    'new_window_takes_over_fs'
-                )
+                line.key = 'misc:on_focus_under_fullscreen'
+                renamed_options += 1
+            
+            # Rename master:inherit_fullscreen -> misc:on_focus_under_fullscreen
+            if line.key.lower() == 'master:inherit_fullscreen':
+                line.key = 'misc:on_focus_under_fullscreen'
                 renamed_options += 1
         
         return MigrationResult(
@@ -366,8 +373,13 @@ class ConfigMigrator:
             if l.key.lower() == 'layerrule' and 'match:' not in l.value.raw
         )
         
-        old_option = any(
+        old_fullscreen_option = any(
             'new_window_takes_over_fullscreen' in l.key.lower()
+            for l in conf.lines
+        )
+        
+        old_inherit_fullscreen = any(
+            l.key.lower() == 'master:inherit_fullscreen'
             for l in conf.lines
         )
         
@@ -376,7 +388,9 @@ class ConfigMigrator:
             summary_parts.append(f"• {rule_count} legacy window rules → windowrule (new syntax)")
         if layer_count > 0:
             summary_parts.append(f"• {layer_count} legacy layer rules → layerrule (new syntax)")
-        if old_option:
-            summary_parts.append("• misc:new_window_takes_over_fullscreen → misc:new_window_takes_over_fs")
+        if old_fullscreen_option:
+            summary_parts.append("• misc:new_window_takes_over_fullscreen → misc:on_focus_under_fullscreen")
+        if old_inherit_fullscreen:
+            summary_parts.append("• master:inherit_fullscreen → misc:on_focus_under_fullscreen")
         
         return '\n'.join(summary_parts)

@@ -149,7 +149,6 @@ HYPRLAND_SCHEMA = [
                     Option("new_on_top", OptionType.BOOL, False, "New windows on top"),
                     Option("new_on_active", OptionType.ENUM, "none", "New window relative position", choices=["before", "after", "none"]),
                     Option("orientation", OptionType.ENUM, "left", "Master orientation", choices=["left", "right", "top", "bottom", "center"]),
-                    Option("inherit_fullscreen", OptionType.BOOL, True, "Inherit fullscreen on swap"),
                     Option("slave_count_for_center_master", OptionType.INT, 2, "Min slaves for center mode", min=0, max=10, step=1),
                     Option("center_master_fallback", OptionType.ENUM, "left", "Fallback when few slaves", choices=["left", "right", "top", "bottom"]),
                     Option("smart_resizing", OptionType.BOOL, True, "Mouse-based resize direction"),
@@ -335,6 +334,8 @@ HYPRLAND_SCHEMA = [
                     Option("enable_swallow", OptionType.BOOL, False, "Enable window swallowing"),
                     Option("swallow_regex", OptionType.STRING, "", "Swallow regex"),
                     Option("swallow_exception_regex", OptionType.STRING, "", "Swallow exception regex"),
+                    # Fullscreen handling
+                    Option("on_focus_under_fullscreen", OptionType.INT, 0, "Focus under fullscreen (0=nothing, 1=unfullscreen, 2=bringontop, 3=focus unfullscreen)", min=0, max=3, step=1),
                 ]
             ),
         ]
