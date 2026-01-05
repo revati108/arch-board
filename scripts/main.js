@@ -16,10 +16,10 @@ function createDevToolbar() {
     const toolbar = document.createElement('div');
     toolbar.id = 'dev-toolbar';
     toolbar.innerHTML = `
-        <div class="dev-toolbar">
-            <span class="dev-label">DEV</span>
-            <label class="dev-toggle">
-                <input type="checkbox" id="auto-reload-toggle" ${getLocalSettings('auto_reload', 'true') === 'true' ? 'checked' : ''}>
+        <div class="fixed bottom-4 right-4 flex items-center gap-3 px-3 py-2 bg-zinc-900/95 border border-zinc-700 rounded-lg text-xs z-[9999] backdrop-blur text-zinc-400">
+            <span class="px-1.5 py-0.5 bg-red-500 text-white rounded font-bold text-[10px] tracking-wider">DEV</span>
+            <label class="flex items-center gap-2 cursor-pointer hover:text-zinc-200 transition-colors">
+                <input type="checkbox" id="auto-reload-toggle" ${getLocalSettings('auto_reload', 'true') === 'true' ? 'checked' : ''} class="accent-teal-500 cursor-pointer">
                 <span>Auto-reload</span>
             </label>
         </div>

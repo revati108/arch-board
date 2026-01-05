@@ -1,19 +1,3 @@
-// Inject styles for highlight
-const style = document.createElement('style');
-style.textContent = `
-    .option-highlight {
-        animation: highlight-pulse 2s ease-out;
-        border-color: #2dd4bf !important; /* teal-400 */
-        background: rgba(45, 212, 191, 0.1);
-    }
-    @keyframes highlight-pulse {
-        0% { transform: scale(1); background: rgba(45, 212, 191, 0.3); }
-        50% { transform: scale(1.02); }
-        100% { transform: scale(1); background: rgba(45, 212, 191, 0.1); }
-    }
-`;
-document.head.appendChild(style);
-
 // Hyprland Config Editor JavaScript
 
 let schema = [];
@@ -43,10 +27,11 @@ function checkHighlight() {
                 const el = document.querySelector(selector);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Add highlight class
-                    el.classList.add('option-highlight');
+                    // Add highlight classes
+                    const highlightClasses = ['ring-2', 'ring-teal-500', 'bg-teal-500/20', 'transition-all', 'duration-1000'];
+                    el.classList.add(...highlightClasses);
                     // Remove after 3s
-                    setTimeout(() => el.classList.remove('option-highlight'), 3000);
+                    setTimeout(() => el.classList.remove(...highlightClasses), 3000);
                 }
             } catch (e) {
                 console.warn('Invalid highlight selector:', selector);
@@ -185,21 +170,21 @@ function renderTabs() {
 
     // Schema tabs
     const schemaTabs = schema.map(tab => `
-        <button class="tab-btn ${tab.id === activeTab ? 'active' : ''}" 
+        <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
                 onclick="switchTab('${tab.id}')">
-            <span class="tab-icon">${tab.icon}</span>
-            <span class="tab-label">${tab.title}</span>
+            <span class="text-base">${tab.icon}</span>
+            <span>${tab.title}</span>
         </button>
     `).join('');
 
     // Special tabs
     const specialTabs = SPECIAL_TABS.map(tab => `
-        <button class="tab-btn ${tab.id === activeTab ? 'active' : ''}" 
+        <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
                 onclick="switchTab('${tab.id}')">
-            <span class="tab-icon">${tab.icon}</span>
-            <span class="tab-label">${tab.title}</span>
+            <span class="text-base">${tab.icon}</span>
+            <span>${tab.title}</span>
         </button>
     `).join('');
 
@@ -211,8 +196,13 @@ function switchTab(tabId) {
     localStorage.setItem('hyprland_active_tab', tabId);
 
     // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabId);
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+        const isActive = btn.dataset.tab === tabId;
+        if (isActive) {
+            btn.classList.add('bg-zinc-800', 'text-teal-500', 'shadow-sm');
+        } else {
+            btn.classList.remove('bg-zinc-800', 'text-teal-500', 'shadow-sm');
+        }
     });
 
     renderTabContent(tabId);
@@ -257,21 +247,21 @@ function renderTabContent(tabId) {
 
 function renderMonitorsTab() {
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Monitor Configuration</h3>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Monitor Configuration</h3>
             </div>
-            <div class="section-content monitors-list">
-                ${monitors.length === 0 ? '<p class="empty-state">No monitors configured</p>' :
+            <div class="p-2">
+                ${monitors.length === 0 ? '<p class="text-center text-zinc-500 p-8">No monitors configured</p>' :
             monitors.map((m, i) => `
-                    <div class="monitor-item">
-                        <div class="monitor-name">${m.name}</div>
-                        <div class="monitor-details">
-                            <span class="monitor-res">${m.resolution || 'disabled'}</span>
-                            ${m.position ? `<span class="monitor-pos">@ ${m.position}</span>` : ''}
-                            ${m.scale ? `<span class="monitor-scale">×${m.scale}</span>` : ''}
+                    <div class="bg-zinc-800 border border-zinc-700 rounded-lg p-4 mb-3">
+                        <div class="font-semibold text-teal-500 text-base mb-2">${m.name}</div>
+                        <div class="flex gap-4 text-sm text-zinc-400 mb-2">
+                            <span class="text-zinc-200">${m.resolution || 'disabled'}</span>
+                            ${m.position ? `<span>@ ${m.position}</span>` : ''}
+                            ${m.scale ? `<span>×${m.scale}</span>` : ''}
                         </div>
-                        <code class="monitor-raw">${m.raw}</code>
+                        <code class="block text-xs text-zinc-500 bg-zinc-900 p-2 rounded overflow-x-auto">${m.raw}</code>
                     </div>
                 `).join('')}
             </div>
@@ -288,34 +278,34 @@ function renderBindsTab() {
     });
 
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Keybinds (${binds.length})</h3>
-                <button class="btn-add" onclick="showAddBindModal()">+ Add Keybind</button>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Keybinds (${binds.length})</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddBindModal()">+ Add Keybind</button>
             </div>
-            <div class="section-content binds-list">
-                <table class="binds-table">
+            <div class="p-0">
+                <table class="w-full text-left text-sm border-collapse">
                     <thead>
                         <tr>
-                            <th>Type</th>
-                            <th>Mods</th>
-                            <th>Key</th>
-                            <th>Dispatcher</th>
-                            <th>Params</th>
-                            <th>Actions</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Type</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Mods</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Key</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Dispatcher</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Params</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${binds.map(b => `
-                            <tr>
-                                <td><code>${b.type}</code></td>
-                                <td>${b.mods || '-'}</td>
-                                <td><code>${b.key}</code></td>
-                                <td><strong>${b.dispatcher}</strong></td>
-                                <td class="bind-params">${b.params || '-'}</td>
-                                <td>
-                                    <button class="action-btn edit" onclick="showEditBindModal('${b.type}', '${b.mods || ''}', '${b.key}', '${b.dispatcher}', '${(b.params || '').replace(/'/g, "\\'")}', '${b.raw.replace(/'/g, "\\'")}')">✏️</button>
-                                    <button class="action-btn delete" onclick="confirmDeleteBind('${b.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                            <tr class="hover:bg-zinc-800/40 border-b border-zinc-800">
+                                <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.type}</code></td>
+                                <td class="p-3 text-zinc-200">${b.mods || '-'}</td>
+                                <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.key}</code></td>
+                                <td class="p-3 text-zinc-200"><strong>${b.dispatcher}</strong></td>
+                                <td class="p-3 text-zinc-500 max-w-[200px] truncate">${b.params || '-'}</td>
+                                <td class="p-3 flex gap-2">
+                                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditBindModal('${b.type}', '${b.mods || ''}', '${b.key}', '${b.dispatcher}', '${(b.params || '').replace(/'/g, "\\'")}', '${b.raw.replace(/'/g, "\\'")}')">✏️</button>
+                                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteBind('${b.raw.replace(/'/g, "\\'")}')">🗑️</button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -328,22 +318,22 @@ function renderBindsTab() {
 
 function renderGesturesTab() {
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Gesture Bindings (${gestures.length})</h3>
-                <button class="btn-add" onclick="showAddGestureModal()">+ Add Gesture</button>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Gesture Bindings (${gestures.length})</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddGestureModal()">+ Add Gesture</button>
             </div>
-            <div class="section-content binds-list">
-                ${gestures.length === 0 ? '<p class="empty-state">No gesture bindings configured. Add a gesture like "3, horizontal, workspace" to enable touchpad swiping.</p>' : `
-                <table class="binds-table">
+            <div class="p-0">
+                ${gestures.length === 0 ? '<p class="text-center text-zinc-500 p-8">No gesture bindings configured. Add a gesture like "3, horizontal, workspace" to enable touchpad swiping.</p>' : `
+                <table class="w-full text-left text-sm border-collapse">
                     <thead>
                         <tr>
-                            <th>Fingers</th>
-                            <th>Direction</th>
-                            <th>Mod/Scale</th>
-                            <th>Action</th>
-                            <th>Params</th>
-                            <th>Actions</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Fingers</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Direction</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Mod/Scale</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Action</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Params</th>
+                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -351,15 +341,15 @@ function renderGesturesTab() {
         const actionDisplay = g.action === 'dispatcher' ? `dispatcher: ${g.dispatcher}` : g.action;
         const modScale = [g.mod ? `mod: ${g.mod}` : '', g.scale ? `scale: ${g.scale}` : ''].filter(x => x).join(', ') || '-';
         return `
-                            <tr>
-                                <td><code>${g.fingers}</code></td>
-                                <td>${g.direction}</td>
-                                <td>${modScale}</td>
-                                <td><strong>${actionDisplay}</strong></td>
-                                <td class="bind-params">${g.params || '-'}</td>
-                                <td>
-                                    <button class="action-btn edit" onclick="showEditGestureModal('${g.fingers}', '${g.direction}', '${g.action}', '${(g.params || '').replace(/'/g, "\\'")}', '${g.raw.replace(/'/g, "\\'")}', '${(g.dispatcher || '').replace(/'/g, "\\'")}', '${(g.mod || '').replace(/'/g, "\\'")}', '${(g.scale || '').replace(/'/g, "\\'")}')">✏️</button>
-                                    <button class="action-btn delete" onclick="confirmDeleteGesture('${g.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                            <tr class="hover:bg-zinc-800/40 border-b border-zinc-800">
+                                <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${g.fingers}</code></td>
+                                <td class="p-3 text-zinc-200">${g.direction}</td>
+                                <td class="p-3 text-zinc-200">${modScale}</td>
+                                <td class="p-3 text-zinc-200"><strong>${actionDisplay}</strong></td>
+                                <td class="p-3 text-zinc-500 max-w-[200px] truncate">${g.params || '-'}</td>
+                                <td class="p-3 flex gap-2">
+                                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditGestureModal('${g.fingers}', '${g.direction}', '${g.action}', '${(g.params || '').replace(/'/g, "\\'")}', '${g.raw.replace(/'/g, "\\'")}', '${(g.dispatcher || '').replace(/'/g, "\\'")}', '${(g.mod || '').replace(/'/g, "\\'")}', '${(g.scale || '').replace(/'/g, "\\'")}')">✏️</button>
+                                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteGesture('${g.raw.replace(/'/g, "\\'")}')">🗑️</button>
                                 </td>
                             </tr>
                         `}).join('')}
@@ -372,21 +362,21 @@ function renderGesturesTab() {
 
 function renderWindowRulesTab() {
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Window Rules (${windowrules.length})</h3>
-                <button class="btn-add" onclick="showAddRuleModal()">+ Add Rule</button>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Window Rules (${windowrules.length})</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddRuleModal()">+ Add Rule</button>
             </div>
-            <div class="section-content rules-list">
-            ${windowrules.length === 0 ? '<p class="empty-state">No window rules configured</p>' :
+            <div class="p-2">
+            ${windowrules.length === 0 ? '<p class="text-center text-zinc-500 p-8">No window rules configured</p>' :
             windowrules.map(r => `
-                    <div class="rule-item">
-                        <code class="rule-type">${r.type}</code>
-                        <span class="rule-effect">${r.effect}</span>
-                        <span class="rule-match">${r.match}</span>
-                        <div class="item-actions">
-                            <button class="action-btn edit" onclick="showEditRuleModal('${r.type}', '${r.effect}', '${r.match.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="action-btn delete" onclick="confirmDeleteRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                    <div class="flex items-center gap-3 p-2.5 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/40">
+                        <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-teal-500 font-mono">${r.type}</code>
+                        <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
+                        <span class="text-zinc-500 text-xs">${r.match}</span>
+                        <div class="ml-auto flex gap-2">
+                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditRuleModal('${r.type}', '${r.effect}', '${r.match.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
                         </div>
                     </div>
                 `).join('')}
@@ -400,32 +390,32 @@ function renderExecTab() {
     const exec = execCommands.filter(c => c.type === 'exec');
 
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Startup Commands</h3>
-                <button class="btn-add" onclick="showAddExecModal()">+ Add Command</button>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Startup Commands</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddExecModal()">+ Add Command</button>
             </div>
-            <div class="section-content exec-list">
-                <h4 class="env-category-title">exec-once (Run at startup)</h4>
-                ${execOnce.length === 0 ? '<p class="empty-state">No startup commands</p>' :
+            <div class="p-2">
+                <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50">exec-once (Run at startup)</h4>
+                ${execOnce.length === 0 ? '<p class="text-center text-zinc-500 p-4 font-sm">No startup commands</p>' :
             execOnce.map(c => `
-                    <div class="exec-item">
-                        <code>${c.command}</code>
-                        <div class="item-actions">
-                            <button class="action-btn edit" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="action-btn delete" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
+                    <div class="p-2.5 border-b border-zinc-800 last:border-0 flex justify-between items-center hover:bg-zinc-800/40">
+                        <code class="text-zinc-400 text-sm font-mono">${c.command}</code>
+                        <div class="flex gap-2">
+                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
                         </div>
                     </div>
                 `).join('')}
                 
                 ${exec.length > 0 ? `
-                <h4 class="env-category-title" style="margin-top: 1rem;">exec (Run at startup and reload)</h4>
+                <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50 mt-4">exec (Run at startup and reload)</h4>
                 ${exec.map(c => `
-                    <div class="exec-item">
-                        <code>${c.command}</code>
-                        <div class="item-actions">
-                            <button class="action-btn edit" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="action-btn delete" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
+                    <div class="p-2.5 border-b border-zinc-800 last:border-0 flex justify-between items-center hover:bg-zinc-800/40">
+                        <code class="text-zinc-400 text-sm font-mono">${c.command}</code>
+                        <div class="flex gap-2">
+                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
+                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
                         </div>
                     </div>
                 `).join('')}` : ''}
@@ -469,28 +459,28 @@ function renderEnvTab() {
     });
 
     let html = `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>Environment Variables (${envVars.length})</h3>
-                <button class="btn-add" onclick="showAddEnvModal()">+ Add Variable</button>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Environment Variables (${envVars.length})</h3>
+                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddEnvModal()">+ Add Variable</button>
             </div>
-            <div class="section-content env-list">
-                ${envVars.length === 0 ? '<p class="empty-state">No environment variables configured</p>' : ''}
+            <div class="p-2">
+                ${envVars.length === 0 ? '<p class="text-center text-zinc-500 p-8">No environment variables configured</p>' : ''}
     `;
 
     // Render each category that has vars
     for (const [category, vars] of Object.entries(categories)) {
         if (vars.length > 0) {
             html += `
-                <div class="env-category">
-                    <h4 class="env-category-title">${category}</h4>
+                <div class="mb-4 last:mb-0">
+                    <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50">${category}</h4>
                     ${vars.map(env => `
-                        <div class="env-item">
-                            <span class="env-name">${env.name}</span>
-                            <span class="env-value">${env.value}</span>
-                            <div class="item-actions">
-                                <button class="action-btn edit" onclick="showEditEnvModal('${env.name}', '${env.value.replace(/'/g, "\\'")}')">✏️</button>
-                                <button class="action-btn delete" onclick="confirmDeleteEnv('${env.name}')">🗑️</button>
+                        <div class="flex justify-between items-center p-2 bg-zinc-800 rounded mb-1 hover:bg-zinc-700/50 transition-colors">
+                            <span class="font-mono font-medium text-teal-500 text-sm">${env.name}</span>
+                            <span class="font-mono text-zinc-400 text-sm truncate max-w-[60%]">${env.value}</span>
+                            <div class="flex gap-2">
+                                <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditEnvModal('${env.name}', '${env.value.replace(/'/g, "\\'")}')">✏️</button>
+                                <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteEnv('${env.name}')">🗑️</button>
                             </div>
                         </div>
                     `).join('')}
@@ -513,11 +503,11 @@ function renderEnvTab() {
 
 function renderSection(section) {
     return `
-        <div class="config-section">
-            <div class="section-header">
-                <h3>${section.title}</h3>
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
+            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">${section.title}</h3>
             </div>
-            <div class="section-content">
+            <div class="p-2">
                 ${section.options.map(opt => renderOption(section.name, opt)).join('')}
             </div>
         </div>
@@ -525,18 +515,18 @@ function renderSection(section) {
 }
 
 function renderOption(sectionName, option) {
-    const path = `${sectionName}:${option.name}`;
+    const path = `${sectionName}:${option.name} `;
     const configValue = config[path];
     const value = configValue !== undefined ? configValue : option.default;
     const hasChange = path in pendingChanges;
 
     return `
-        <div class="config-option ${hasChange ? 'changed' : ''}" data-path="${path}">
-            <div class="option-info">
-                <label class="option-label">${formatLabel(option.name)}</label>
-                <span class="option-desc">${option.description}</span>
+        <div class="flex justify-between items-center px-4 py-3.5 hover:bg-zinc-800/40 transition-colors rounded-lg mb-1 ${hasChange ? 'bg-teal-500/5 border-l-2 border-teal-500' : ''}" data-path="${path}">
+            <div class="flex-1 min-w-0 mr-4">
+                <label class="block text-sm font-medium text-zinc-200 mb-0.5">${formatLabel(option.name)}</label>
+                <span class="block text-xs text-zinc-500 truncate max-w-md">${option.description}</span>
             </div>
-            <div class="option-control">
+            <div class="flex-shrink-0">
                 ${renderControl(path, option, value)}
             </div>
         </div>
@@ -580,11 +570,11 @@ function renderControl(path, option, value) {
 function renderToggle(path, value) {
     const checked = value === true || value === 'true' || value === 'yes' || value === '1';
     return `
-        <label class="toggle">
-            <input type="checkbox" ${checked ? 'checked' : ''} 
-                   onchange="updateValue('${path}', this.checked)">
-            <span class="toggle-slider"></span>
-        </label>
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" class="sr-only peer" ${checked ? 'checked' : ''}
+                onchange="updateValue('${path}', this.checked)">
+                <div class="w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+            </label>
     `;
 }
 
@@ -593,19 +583,19 @@ function renderSlider(path, option, value) {
     const numValue = isNaN(parsed) ? option.default : parsed;
     const step = option.step || (option.type === 'float' ? 0.1 : 1);
     return `
-        <div class="slider-control">
-            <input type="range" 
-                   min="${option.min}" max="${option.max}" step="${step}"
-                   value="${numValue}"
-                   oninput="updateSlider('${path}', this.value, this.parentElement)">
-            <span class="slider-value">${numValue}</span>
-        </div>
+        <div class="flex items-center gap-3 min-w-[180px]">
+            <input type="range" class="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-teal-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                min="${option.min}" max="${option.max}" step="${step}"
+                value="${numValue}"
+                oninput="updateSlider('${path}', this.value, this.parentElement)">
+                <span class="slider-value min-w-[40px] text-right text-sm font-medium text-zinc-200">${numValue}</span>
+            </div>
     `;
 }
 
 function renderNumberInput(path, option, value) {
     return `
-        <input type="number" class="input-number" value="${value}"
+        <input type="number" class="w-20 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm text-center focus:outline-none focus:border-teal-500 transition-colors" value="${value}"
                ${option.min !== null ? `min="${option.min}"` : ''}
                ${option.max !== null ? `max="${option.max}"` : ''}
                ${option.step ? `step="${option.step}"` : ''}
@@ -617,25 +607,25 @@ function renderColorInput(path, value) {
     // Convert hyprland color format to hex
     const hexColor = hyprColorToHex(value);
     return `
-        <div class="color-control">
-            <input type="color" value="${hexColor}" 
-                   onchange="updateColor('${path}', this.value)">
-            <input type="text" class="color-text" value="${value}"
-                   onchange="updateValue('${path}', this.value)">
-        </div>
-    `;
+        <div class="flex items-center gap-2">
+            <input type="color" value="${hexColor}" class="w-8 h-8 rounded border-none cursor-pointer bg-transparent"
+                onchange="updateColor('${path}', this.value)">
+                <input type="text" class="w-28 px-2 py-1.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 text-xs font-mono focus:outline-none focus:border-teal-500" value="${value}"
+                    onchange="updateValue('${path}', this.value)">
+                </div>
+                `;
 }
 
 function renderSelect(path, option, value) {
     return `
-        <select class="input-select" onchange="updateValue('${path}', this.value)">
-            ${option.choices.map(choice => `
+                <select class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors cursor-pointer" onchange="updateValue('${path}', this.value)">
+                    ${option.choices.map(choice => `
                 <option value="${choice}" ${value === choice ? 'selected' : ''}>
                     ${choice || '(none)'}
                 </option>
             `).join('')}
-        </select>
-    `;
+                </select>
+                `;
 }
 
 function renderVec2Input(path, value) {
@@ -643,20 +633,20 @@ function renderVec2Input(path, value) {
     const x = parts[0] || '0';
     const y = parts[1] || '0';
     return `
-        <div class="vec2-control">
-            <input type="number" class="input-number" value="${x}" placeholder="X"
-                   onchange="updateVec2('${path}', this.value, null)">
-            <input type="number" class="input-number" value="${y}" placeholder="Y"
-                   onchange="updateVec2('${path}', null, this.value)">
-        </div>
-    `;
+                <div class="flex gap-2">
+                    <input type="number" class="w-16 px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 text-sm text-center focus:outline-none focus:border-teal-500" value="${x}" placeholder="X"
+                        onchange="updateVec2('${path}', this.value, null)">
+                        <input type="number" class="w-16 px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-200 text-sm text-center focus:outline-none focus:border-teal-500" value="${y}" placeholder="Y"
+                            onchange="updateVec2('${path}', null, this.value)">
+                        </div>
+                        `;
 }
 
 function renderTextInput(path, value) {
     return `
-        <input type="text" class="input-text" value="${value}"
-               onchange="updateValue('${path}', this.value)">
-    `;
+                        <input type="text" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${value}"
+                            onchange="updateValue('${path}', this.value)">
+                            `;
 }
 
 // =============================================================================
@@ -713,7 +703,9 @@ function updateVec2(path, x, y) {
 
 function markChanged(path) {
     const el = document.querySelector(`[data-path="${path}"]`);
-    if (el) el.classList.add('changed');
+    if (el) {
+        el.classList.add('bg-teal-500/5', 'border-l-2', 'border-teal-500');
+    }
 }
 
 function updateSaveButton() {
@@ -722,21 +714,21 @@ function updateSaveButton() {
     if (count > 0) {
         btn.classList.add('has-changes');
         btn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-            </svg>
-            Save (${count})
-        `;
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            Save (${count})
+                            `;
     } else {
         btn.classList.remove('has-changes');
         btn.innerHTML = `
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-            </svg>
-            Save
-        `;
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            </svg>
+                            Save
+                            `;
     }
 
     // Also update preset selector to show change count
@@ -764,8 +756,8 @@ async function saveConfig() {
 
         // Clear pending changes
         pendingChanges = {};
-        document.querySelectorAll('.config-option.changed').forEach(el => {
-            el.classList.remove('changed');
+        document.querySelectorAll('[data-path]').forEach(el => {
+            el.classList.remove('bg-teal-500/5', 'border-l-2', 'border-teal-500');
         });
         updateSaveButton();
 
@@ -827,7 +819,7 @@ function hyprColorToHex(color) {
     }
 
     // Hyprland rgba(RRGGBBAA) format - hex inside parentheses, NOT decimal RGB!
-    const hyprRgbaMatch = colorStr.match(/rgba?\s*\(\s*([0-9a-fA-F]{6,8})\s*\)/);
+    const hyprRgbaMatch = colorStr.match(/rgba?\s*\(\s*([0-9a-fA-F]{6, 8})\s*\)/);
     if (hyprRgbaMatch) {
         const hex = hyprRgbaMatch[1];
         // RRGGBBAA -> #RRGGBB (first 6 chars, skip alpha if present)
@@ -844,7 +836,7 @@ function hyprColorToHex(color) {
     }
 
     // Handle bare hex without prefix (e.g., "33ccff" or "33ccffee")
-    const bareHexMatch = colorStr.match(/^([0-9a-fA-F]{6,8})/);
+    const bareHexMatch = colorStr.match(/^([0-9a-fA-F]{6, 8})/);
     if (bareHexMatch) {
         const hex = bareHexMatch[1];
         return '#' + hex.slice(0, 6);
@@ -882,16 +874,16 @@ function closeModal() {
 
 function confirmDialog(title, message, onConfirm) {
     openModal(`
-        <div class="modal-header">
-            <h3>${title}</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">${title}</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
+        <div class="mb-6">
             <p>${message}</p>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-danger" onclick="(${onConfirm})(); closeModal();">Delete</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 rounded-lg transition-colors" onclick="(${onConfirm})(); closeModal();">Delete</button>
         </div>
     `);
 }
@@ -902,23 +894,23 @@ function confirmDialog(title, message, onConfirm) {
 
 function showAddEnvModal() {
     openModal(`
-        <div class="modal-header">
-            <h3>Add Environment Variable</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Add Environment Variable</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Variable Name</label>
-                <input type="text" id="env-name" class="form-input" placeholder="e.g., GTK_THEME">
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Variable Name</label>
+                <input type="text" id="env-name" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., GTK_THEME">
             </div>
-            <div class="form-group">
-                <label class="form-label">Value</label>
-                <input type="text" id="env-value" class="form-input" placeholder="e.g., Nord">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Value</label>
+                <input type="text" id="env-value" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., Nord">
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="addEnvVar()">Add</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addEnvVar()">Add</button>
         </div>
     `);
 }
@@ -945,23 +937,23 @@ async function addEnvVar() {
 
 function showEditEnvModal(name, value) {
     openModal(`
-        <div class="modal-header">
-            <h3>Edit Environment Variable</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Edit Environment Variable</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Variable Name</label>
-                <input type="text" id="env-name" class="form-input" value="${name}">
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Variable Name</label>
+                <input type="text" id="env-name" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${name}">
             </div>
-            <div class="form-group">
-                <label class="form-label">Value</label>
-                <input type="text" id="env-value" class="form-input" value="${value}">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Value</label>
+                <input type="text" id="env-value" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${value}">
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="updateEnvVar('${name}')">Save</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateEnvVar('${name}')">Save</button>
         </div>
     `);
 }
@@ -1012,26 +1004,26 @@ function confirmDeleteEnv(name) {
 
 function showAddExecModal() {
     openModal(`
-        <div class="modal-header">
-            <h3>Add Startup Command</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Add Startup Command</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Type</label>
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Type</label>
                 <select id="exec-type" class="form-select">
                     <option value="exec-once">exec-once (Run at startup)</option>
                     <option value="exec">exec (Run at startup and reload)</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Command</label>
-                <input type="text" id="exec-command" class="form-input" placeholder="e.g., waybar">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Command</label>
+                <input type="text" id="exec-command" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., waybar">
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="addExecCommand()">Add</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addExecCommand()">Add</button>
         </div>
     `);
 }
@@ -1075,34 +1067,34 @@ function confirmDeleteExec(type, command) {
     const escapedCmd = command.replace(/'/g, "\\'");
     confirmDialog('Delete Command',
         `Are you sure you want to delete this command?`,
-        `function() { deleteExecCommand('${type}', '${escapedCmd}') }`);
+        `function() {deleteExecCommand('${type}', '${escapedCmd}')}`);
 }
 
 function showEditExecModal(type, command) {
     const escapedCmd = command.replace(/"/g, '&quot;');
     openModal(`
-        <div class="modal-header">
-            <h3>Edit Startup Command</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Type</label>
-                <select id="exec-type" class="form-select">
-                    <option value="exec-once" ${type === 'exec-once' ? 'selected' : ''}>exec-once (Run at startup)</option>
-                    <option value="exec" ${type === 'exec' ? 'selected' : ''}>exec (Run at startup and reload)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Command</label>
-                <input type="text" id="exec-command" class="form-input" value="${escapedCmd}">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="updateExecCommand('${type}', '${command.replace(/'/g, "\\'")}')">Save</button>
-        </div>
-    `);
+                            <div class="flex items-center justify-between mb-6">
+                                <h3 class="text-xl font-bold text-white">Edit Startup Command</h3>
+                                <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+                            </div>
+                            <div class="mb-6">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Type</label>
+                                    <select id="exec-type" class="form-select">
+                                        <option value="exec-once" ${type === 'exec-once' ? 'selected' : ''}>exec-once (Run at startup)</option>
+                                        <option value="exec" ${type === 'exec' ? 'selected' : ''}>exec (Run at startup and reload)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Command</label>
+                                    <input type="text" id="exec-command" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedCmd}">
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                                <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                                <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateExecCommand('${type}', '${command.replace(/'/g, "\\'")}')">Save</button>
+                        </div>
+                        `);
 }
 
 async function updateExecCommand(oldType, oldCommand) {
@@ -1148,14 +1140,14 @@ function showAddRuleModal() {
         ).join('');
 
         openModal(`
-            <div class="modal-header">
-                <h3>Add Window Rule</h3>
-                <button class="modal-close" onclick="closeModal()">×</button>
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Add Window Rule</h3>
+                <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
             </div>
-            <div class="modal-body">
+            <div class="mb-6">
                 <input type="hidden" id="rule-type" value="windowrule">
-                <div class="form-group">
-                    <label class="form-label">Effect</label>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
                     <select id="rule-effect" class="form-select">
                         <option value="float">float</option>
                         <option value="tile">tile</option>
@@ -1170,21 +1162,21 @@ function showAddRuleModal() {
                         <option value="center">center</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Match Window (select from open)</label>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Match Window (select from open)</label>
                     <select id="rule-window-select" class="form-select" onchange="document.getElementById('rule-match').value = this.value ? 'class:' + this.value : ''">
                         <option value="">-- Choose window --</option>
                         ${windowOptions}
                     </select>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Or enter match manually</label>
-                    <input type="text" id="rule-match" class="form-input" placeholder="e.g., class:firefox">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Or enter match manually</label>
+                    <input type="text" id="rule-match" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., class:firefox">
                 </div>
             </div>
-            <div class="modal-footer">
-                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-                <button class="btn-add" onclick="addWindowRule()">Add</button>
+            <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addWindowRule()">Add</button>
             </div>
         `);
     });
@@ -1230,7 +1222,7 @@ function confirmDeleteRule(raw) {
     const escapedRaw = raw.replace(/'/g, "\\'");
     confirmDialog('Delete Window Rule',
         `Are you sure you want to delete this rule?`,
-        `function() { deleteWindowRule('${escapedRaw}') }`);
+        `function() {deleteWindowRule('${escapedRaw}')}`);
 }
 
 function showEditRuleModal(type, effect, match, raw) {
@@ -1238,26 +1230,26 @@ function showEditRuleModal(type, effect, match, raw) {
     const escapedRaw = raw.replace(/'/g, "\\'");
 
     openModal(`
-        <div class="modal-header">
-            <h3>Edit Window Rule</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <input type="hidden" id="rule-type" value="windowrule">
-            <div class="form-group">
-                <label class="form-label">Effect</label>
-                <input type="text" id="rule-effect" class="form-input" value="${effect}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Match</label>
-                <input type="text" id="rule-match" class="form-input" value="${escapedMatch}">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="updateWindowRule('${escapedRaw}')">Save</button>
-        </div>
-    `);
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-white">Edit Window Rule</h3>
+                            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+                        </div>
+                        <div class="mb-6">
+                            <input type="hidden" id="rule-type" value="windowrule">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
+                                    <input type="text" id="rule-effect" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${effect}">
+                                </div>
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Match</label>
+                                    <input type="text" id="rule-match" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedMatch}">
+                                </div>
+                        </div>
+                        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateWindowRule('${escapedRaw}')">Save</button>
+                        </div>
+                        `);
 }
 
 async function updateWindowRule(oldRaw) {
@@ -1385,46 +1377,46 @@ function showAddBindModal() {
     capturedKey = '';
 
     openModal(`
-        <div class="modal-header">
-            <h3>Add Keybind</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Press your key combination</label>
-                <div id="key-capture-box" class="key-capture-box" tabindex="0" onkeydown="captureKey(event)">
-                    <div class="key-capture-display" id="key-display">Click here and press keys</div>
-                    <div class="key-capture-hint">Hold modifiers (SUPER, ALT, CTRL, SHIFT) and press a key</div>
-                </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Bind Type</label>
-                <select id="bind-type" class="form-select">
-                    <option value="bind">bind - Normal keybind</option>
-                    <option value="binde">binde - Repeat while held</option>
-                    <option value="bindm">bindm - Mouse bind</option>
-                    <option value="bindl">bindl - Works when locked</option>
-                    <option value="bindr">bindr - On key release</option>
-                    <option value="bindel">bindel - Repeat + locked</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Dispatcher (Action)</label>
-                <select id="bind-dispatcher" class="form-select" onchange="updateParamHint()">
-                    ${getDispatcherOptions()}
-                </select>
-                <small id="param-hint" class="form-hint">Parameter: command (e.g., kitty, firefox)</small>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Parameters</label>
-                <input type="text" id="bind-params" class="form-input" placeholder="Enter parameters based on dispatcher">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="addBind()">Add</button>
-        </div>
-    `);
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-xl font-bold text-white">Add Keybind</h3>
+                        <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+                    </div>
+                    <div class="mb-6">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-zinc-400 mb-1.5">Press your key combination</label>
+                            <div id="key-capture-box" class="w-full h-32 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-zinc-800 transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500" tabindex="0" onkeydown="captureKey(event)">
+                                <div class="text-xl font-mono text-zinc-200 mb-2 font-bold" id="key-display">Click here and press keys</div>
+                                <div class="text-sm text-zinc-500">Hold modifiers (SUPER, ALT, CTRL, SHIFT) and press a key</div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-zinc-400 mb-1.5">Bind Type</label>
+                            <select id="bind-type" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                                <option value="bind">bind - Normal keybind</option>
+                                <option value="binde">binde - Repeat while held</option>
+                                <option value="bindm">bindm - Mouse bind</option>
+                                <option value="bindl">bindl - Works when locked</option>
+                                <option value="bindr">bindr - On key release</option>
+                                <option value="bindel">bindel - Repeat + locked</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher (Action)</label>
+                            <select id="bind-dispatcher" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="updateParamHint()">
+                                ${getDispatcherOptions()}
+                            </select>
+                            <small id="param-hint" class="block mt-1 text-xs text-zinc-500">Parameter: command (e.g., kitty, firefox)</small>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-zinc-400 mb-1.5">Parameters</label>
+                            <input type="text" id="bind-params" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="Enter parameters based on dispatcher">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                        <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                        <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addBind()">Add</button>
+                    </div>
+                    `);
 
     setTimeout(() => document.getElementById('key-capture-box').focus(), 100);
 }
@@ -1464,7 +1456,7 @@ function captureKey(event) {
 
     const display = mods.length > 0 ? mods.join(' + ') + ' + ' + key : key;
     document.getElementById('key-display').textContent = display;
-    document.getElementById('key-capture-box').classList.add('capturing');
+    document.getElementById('key-capture-box').classList.add('ring-2', 'ring-teal-500', 'border-teal-500', 'bg-zinc-800');
 }
 
 async function addBind() {
@@ -1516,7 +1508,7 @@ function confirmDeleteBind(raw) {
     const escapedRaw = raw.replace(/'/g, "\\'");
     confirmDialog('Delete Keybind',
         `Are you sure you want to delete this keybind?`,
-        `function() { deleteBind('${escapedRaw}') }`);
+        `function() {deleteBind('${escapedRaw}')}`);
 }
 
 function getDispatcherOptionsWithSelected(selected) {
@@ -1547,46 +1539,46 @@ function showEditBindModal(type, mods, key, dispatcher, params, raw) {
     const paramHint = DISPATCHERS[dispatcher]?.param || 'parameters';
 
     openModal(`
-        <div class="modal-header">
-            <h3>Edit Keybind</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Press your key combination</label>
-                <div id="key-capture-box" class="key-capture-box capturing" tabindex="0" onkeydown="captureKey(event)">
-                    <div class="key-capture-display" id="key-display">${modsDisplay}</div>
-                    <div class="key-capture-hint">Click and press new keys to change</div>
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-white">Edit Keybind</h3>
+                    <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
                 </div>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Bind Type</label>
-                <select id="bind-type" class="form-select">
-                    <option value="bind" ${type === 'bind' ? 'selected' : ''}>bind - Normal keybind</option>
-                    <option value="binde" ${type === 'binde' ? 'selected' : ''}>binde - Repeat while held</option>
-                    <option value="bindm" ${type === 'bindm' ? 'selected' : ''}>bindm - Mouse bind</option>
-                    <option value="bindl" ${type === 'bindl' ? 'selected' : ''}>bindl - Works when locked</option>
-                    <option value="bindr" ${type === 'bindr' ? 'selected' : ''}>bindr - On key release</option>
-                    <option value="bindel" ${type === 'bindel' ? 'selected' : ''}>bindel - Repeat + locked</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Dispatcher (Action)</label>
-                <select id="bind-dispatcher" class="form-select" onchange="updateParamHint()">
-                    ${getDispatcherOptionsWithSelected(dispatcher)}
-                </select>
-                <small id="param-hint" class="form-hint">Parameter: ${paramHint}</small>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Parameters</label>
-                <input type="text" id="bind-params" class="form-input" value="${escapedParams}">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="updateBind('${escapedRaw}')">Save</button>
-        </div>
-    `);
+                <div class="mb-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Press your key combination</label>
+                        <div id="key-capture-box" class="w-full h-32 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-teal-500 hover:bg-zinc-800 transition-all focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500" tabindex="0" onkeydown="captureKey(event)">
+                            <div class="text-xl font-mono text-zinc-200 mb-2 font-bold" id="key-display">${modsDisplay}</div>
+                            <div class="text-sm text-zinc-500">Click and press new keys to change</div>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Bind Type</label>
+                        <select id="bind-type" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                            <option value="bind" ${type === 'bind' ? 'selected' : ''}>bind - Normal keybind</option>
+                            <option value="binde" ${type === 'binde' ? 'selected' : ''}>binde - Repeat while held</option>
+                            <option value="bindm" ${type === 'bindm' ? 'selected' : ''}>bindm - Mouse bind</option>
+                            <option value="bindl" ${type === 'bindl' ? 'selected' : ''}>bindl - Works when locked</option>
+                            <option value="bindr" ${type === 'bindr' ? 'selected' : ''}>bindr - On key release</option>
+                            <option value="bindel" ${type === 'bindel' ? 'selected' : ''}>bindel - Repeat + locked</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher (Action)</label>
+                        <select id="bind-dispatcher" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="updateParamHint()">
+                            ${getDispatcherOptionsWithSelected(dispatcher)}
+                        </select>
+                        <small id="param-hint" class="block mt-1 text-xs text-zinc-500">Parameter: ${paramHint}</small>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Parameters</label>
+                        <input type="text" id="bind-params" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedParams}">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                    <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                    <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateBind('${escapedRaw}')">Save</button>
+                </div>
+                `);
 
     setTimeout(() => document.getElementById('key-capture-box').focus(), 100);
 }
@@ -1682,21 +1674,21 @@ function updateGestureParamHint() {
 
 function showAddGestureModal() {
     openModal(`
-        <div class="modal-header">
-            <h3>Add Gesture</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Add Gesture</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Number of Fingers</label>
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Number of Fingers</label>
                 <select id="gesture-fingers" class="form-select">
                     <option value="3">3 fingers</option>
                     <option value="4">4 fingers</option>
                     <option value="5">5 fingers</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Direction</label>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Direction</label>
                 <select id="gesture-direction" class="form-select">
                     <option value="swipe">swipe (any swipe)</option>
                     <option value="horizontal">horizontal</option>
@@ -1710,8 +1702,8 @@ function showAddGestureModal() {
                     <option value="pinchout">pinchout</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Modifier (optional)</label>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Modifier (optional)</label>
                 <select id="gesture-mod" class="form-select">
                     <option value="">None</option>
                     <option value="SUPER">SUPER</option>
@@ -1723,31 +1715,31 @@ function showAddGestureModal() {
                     <option value="SUPER_SHIFT">SUPER + SHIFT</option>
                 </select>
             </div>
-            <div class="form-group">
-                <label class="form-label">Scale (optional, e.g., 1.5)</label>
-                <input type="text" id="gesture-scale" class="form-input" placeholder="Leave empty for default">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Scale (optional, e.g., 1.5)</label>
+                <input type="text" id="gesture-scale" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="Leave empty for default">
             </div>
-            <div class="form-group">
-                <label class="form-label">Action</label>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Action</label>
                 <select id="gesture-action" class="form-select" onchange="toggleGestureDispatcher()">
                     ${getGestureActionOptions()}
                 </select>
             </div>
-            <div class="form-group" id="gesture-dispatcher-group" style="display: none;">
-                <label class="form-label">Dispatcher</label>
+            <div class="mb-4" id="gesture-dispatcher-group" style="display: none;">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher</label>
                 <select id="gesture-dispatcher" class="form-select" onchange="updateGestureParamHint()">
                     ${getDispatcherOptions()}
                 </select>
                 <small id="gesture-param-hint" class="form-hint">Parameter: command (e.g., kitty, firefox)</small>
             </div>
-            <div class="form-group" id="gesture-params-group">
-                <label class="form-label" id="gesture-params-label">Parameters (none needed)</label>
-                <input type="text" id="gesture-params" class="form-input" placeholder="e.g., special workspace name">
+            <div class="mb-4" id="gesture-params-group">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5" id="gesture-params-label">Parameters (none needed)</label>
+                <input type="text" id="gesture-params" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., special workspace name">
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="addGesture()">Add</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="addGesture()">Add</button>
         </div>
     `);
 }
@@ -1800,74 +1792,74 @@ function showEditGestureModal(fingers, direction, gestureAction, params, raw, di
     const isDispatcher = gestureAction === 'dispatcher';
 
     openModal(`
-        <div class="modal-header">
-            <h3>Edit Gesture</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Number of Fingers</label>
-                <select id="gesture-fingers" class="form-select">
-                    <option value="3" ${fingers == '3' ? 'selected' : ''}>3 fingers</option>
-                    <option value="4" ${fingers == '4' ? 'selected' : ''}>4 fingers</option>
-                    <option value="5" ${fingers == '5' ? 'selected' : ''}>5 fingers</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Direction</label>
-                <select id="gesture-direction" class="form-select">
-                    <option value="swipe" ${direction === 'swipe' ? 'selected' : ''}>swipe (any swipe)</option>
-                    <option value="horizontal" ${direction === 'horizontal' ? 'selected' : ''}>horizontal</option>
-                    <option value="vertical" ${direction === 'vertical' ? 'selected' : ''}>vertical</option>
-                    <option value="left" ${direction === 'left' ? 'selected' : ''}>left</option>
-                    <option value="right" ${direction === 'right' ? 'selected' : ''}>right</option>
-                    <option value="up" ${direction === 'up' ? 'selected' : ''}>up</option>
-                    <option value="down" ${direction === 'down' ? 'selected' : ''}>down</option>
-                    <option value="pinch" ${direction === 'pinch' ? 'selected' : ''}>pinch (any pinch)</option>
-                    <option value="pinchin" ${direction === 'pinchin' ? 'selected' : ''}>pinchin</option>
-                    <option value="pinchout" ${direction === 'pinchout' ? 'selected' : ''}>pinchout</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Modifier (optional)</label>
-                <select id="gesture-mod" class="form-select">
-                    <option value="" ${!mod ? 'selected' : ''}>None</option>
-                    <option value="SUPER" ${mod === 'SUPER' ? 'selected' : ''}>SUPER</option>
-                    <option value="ALT" ${mod === 'ALT' ? 'selected' : ''}>ALT</option>
-                    <option value="CTRL" ${mod === 'CTRL' ? 'selected' : ''}>CTRL</option>
-                    <option value="SHIFT" ${mod === 'SHIFT' ? 'selected' : ''}>SHIFT</option>
-                    <option value="SUPER_ALT" ${mod === 'SUPER_ALT' ? 'selected' : ''}>SUPER + ALT</option>
-                    <option value="SUPER_CTRL" ${mod === 'SUPER_CTRL' ? 'selected' : ''}>SUPER + CTRL</option>
-                    <option value="SUPER_SHIFT" ${mod === 'SUPER_SHIFT' ? 'selected' : ''}>SUPER + SHIFT</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label">Scale (optional, e.g., 1.5)</label>
-                <input type="text" id="gesture-scale" class="form-input" value="${scale}" placeholder="Leave empty for default">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Action</label>
-                <select id="gesture-action" class="form-select" onchange="toggleGestureDispatcher()">
-                    ${getGestureActionOptions(gestureAction)}
-                </select>
-            </div>
-            <div class="form-group" id="gesture-dispatcher-group" style="display: ${isDispatcher ? 'block' : 'none'};">
-                <label class="form-label">Dispatcher</label>
-                <select id="gesture-dispatcher" class="form-select" onchange="updateGestureParamHint()">
-                    ${getDispatcherOptionsWithSelected(dispatcher)}
-                </select>
-                <small id="gesture-param-hint" class="form-hint">Parameter: ${DISPATCHERS[dispatcher]?.param || 'parameters'}</small>
-            </div>
-            <div class="form-group" id="gesture-params-group">
-                <label class="form-label" id="gesture-params-label">${isDispatcher ? 'Dispatcher Parameters' : 'Parameters'}</label>
-                <input type="text" id="gesture-params" class="form-input" value="${escapedParams}">
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="updateGesture('${escapedRaw}')">Save</button>
-        </div>
-    `);
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-white">Edit Gesture</h3>
+                    <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+                </div>
+                <div class="mb-6">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Number of Fingers</label>
+                        <select id="gesture-fingers" class="form-select">
+                            <option value="3" ${fingers == '3' ? 'selected' : ''}>3 fingers</option>
+                            <option value="4" ${fingers == '4' ? 'selected' : ''}>4 fingers</option>
+                            <option value="5" ${fingers == '5' ? 'selected' : ''}>5 fingers</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Direction</label>
+                        <select id="gesture-direction" class="form-select">
+                            <option value="swipe" ${direction === 'swipe' ? 'selected' : ''}>swipe (any swipe)</option>
+                            <option value="horizontal" ${direction === 'horizontal' ? 'selected' : ''}>horizontal</option>
+                            <option value="vertical" ${direction === 'vertical' ? 'selected' : ''}>vertical</option>
+                            <option value="left" ${direction === 'left' ? 'selected' : ''}>left</option>
+                            <option value="right" ${direction === 'right' ? 'selected' : ''}>right</option>
+                            <option value="up" ${direction === 'up' ? 'selected' : ''}>up</option>
+                            <option value="down" ${direction === 'down' ? 'selected' : ''}>down</option>
+                            <option value="pinch" ${direction === 'pinch' ? 'selected' : ''}>pinch (any pinch)</option>
+                            <option value="pinchin" ${direction === 'pinchin' ? 'selected' : ''}>pinchin</option>
+                            <option value="pinchout" ${direction === 'pinchout' ? 'selected' : ''}>pinchout</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Modifier (optional)</label>
+                        <select id="gesture-mod" class="form-select">
+                            <option value="" ${!mod ? 'selected' : ''}>None</option>
+                            <option value="SUPER" ${mod === 'SUPER' ? 'selected' : ''}>SUPER</option>
+                            <option value="ALT" ${mod === 'ALT' ? 'selected' : ''}>ALT</option>
+                            <option value="CTRL" ${mod === 'CTRL' ? 'selected' : ''}>CTRL</option>
+                            <option value="SHIFT" ${mod === 'SHIFT' ? 'selected' : ''}>SHIFT</option>
+                            <option value="SUPER_ALT" ${mod === 'SUPER_ALT' ? 'selected' : ''}>SUPER + ALT</option>
+                            <option value="SUPER_CTRL" ${mod === 'SUPER_CTRL' ? 'selected' : ''}>SUPER + CTRL</option>
+                            <option value="SUPER_SHIFT" ${mod === 'SUPER_SHIFT' ? 'selected' : ''}>SUPER + SHIFT</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Scale (optional, e.g., 1.5)</label>
+                        <input type="text" id="gesture-scale" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${scale}" placeholder="Leave empty for default">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Action</label>
+                        <select id="gesture-action" class="form-select" onchange="toggleGestureDispatcher()">
+                            ${getGestureActionOptions(gestureAction)}
+                        </select>
+                    </div>
+                    <div class="mb-4" id="gesture-dispatcher-group" style="display: ${isDispatcher ? 'block' : 'none'};">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher</label>
+                        <select id="gesture-dispatcher" class="form-select" onchange="updateGestureParamHint()">
+                            ${getDispatcherOptionsWithSelected(dispatcher)}
+                        </select>
+                        <small id="gesture-param-hint" class="form-hint">Parameter: ${DISPATCHERS[dispatcher]?.param || 'parameters'}</small>
+                    </div>
+                    <div class="mb-4" id="gesture-params-group">
+                        <label class="block text-sm font-medium text-zinc-400 mb-1.5" id="gesture-params-label">${isDispatcher ? 'Dispatcher Parameters' : 'Parameters'}</label>
+                        <input type="text" id="gesture-params" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedParams}">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+                    <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+                    <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updateGesture('${escapedRaw}')">Save</button>
+                </div>
+                `);
 }
 
 async function updateGesture(oldRaw) {
@@ -1932,7 +1924,7 @@ function confirmDeleteGesture(raw) {
     const escapedRaw = raw.replace(/'/g, "\\'");
     confirmDialog('Delete Gesture',
         `Are you sure you want to delete this gesture?`,
-        `function() { deleteGesture('${escapedRaw}') }`);
+        `function() {deleteGesture('${escapedRaw}')}`);
 }
 
 // =============================================================================
@@ -1962,7 +1954,7 @@ function renderPresetSelector() {
         if (header) {
             container = document.createElement('div');
             container.id = 'preset-selector-container';
-            container.className = 'preset-selector-container';
+            container.className = 'flex justify-between items-center mb-4';
             header.appendChild(container);
         } else {
             // Create before tab navigation as fallback
@@ -1970,7 +1962,7 @@ function renderPresetSelector() {
             if (tabNav) {
                 container = document.createElement('div');
                 container.id = 'preset-selector-container';
-                container.className = 'preset-selector-container';
+                container.className = 'flex justify-between items-center mb-4';
                 tabNav.parentElement.insertBefore(container, tabNav);
             } else {
                 return; // No suitable location found
@@ -1983,33 +1975,33 @@ function renderPresetSelector() {
     const hasChanges = changeCount > 0;
 
     container.innerHTML = `
-        <div class="preset-selector">
-            <div class="preset-current">
-                <span class="preset-label">Preset:</span>
-                <select id="preset-dropdown" onchange="handlePresetChange(this.value)">
-                    <option value="">-- No Preset --</option>
-                    ${presets.map(p => `
+                <div class="flex items-center gap-3 p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold text-zinc-500 uppercase tracking-wider pl-2">Preset:</span>
+                        <select id="preset-dropdown" onchange="handlePresetChange(this.value)" class="bg-zinc-800 border-none text-zinc-200 text-sm rounded-md px-2 py-1 focus:ring-1 focus:ring-teal-500 cursor-pointer outline-none hover:bg-zinc-700 transition-colors">
+                            <option value="">-- No Preset --</option>
+                            ${presets.map(p => `
                         <option value="${p.id}" ${p.id === activePreset ? 'selected' : ''}>
                             ${p.name}
                         </option>
                     `).join('')}
-                </select>
-            </div>
-            <div class="preset-actions">
-                ${activePreset ? `
-                    <button class="btn-preset ${hasChanges ? 'has-changes' : ''}" onclick="saveAndSyncPreset()" title="Save and sync to preset">
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        ${activePreset ? `
+                    <button class="px-3 py-1.5 ${hasChanges ? 'bg-teal-500 hover:bg-teal-600 text-white shadow-lg shadow-teal-500/20' : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-300'} text-sm rounded-md transition-all flex items-center gap-2" onclick="saveAndSyncPreset()" title="Save and sync to preset">
                         💾 Save${hasChanges ? ` (${changeCount})` : ''}
                     </button>
                 ` : ''}
-                <button class="btn-preset" onclick="showSavePresetModal()" title="Save current config as new preset">
-                    � Save As
-                </button>
-                <button class="btn-preset" onclick="showManagePresetsModal()" title="Manage presets">
-                    ⚙️
-                </button>
-            </div>
-        </div>
-    `;
+                        <button class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md transition-colors flex items-center gap-2" onclick="showSavePresetModal()" title="Save current config as new preset">
+                            💾 Save As
+                        </button>
+                        <button class="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm rounded-md transition-colors flex items-center gap-2" onclick="showManagePresetsModal()" title="Manage presets">
+                            ⚙️
+                        </button>
+                    </div>
+                </div>
+                `;
 }
 
 async function handlePresetChange(presetId) {
@@ -2074,24 +2066,24 @@ async function activatePreset(presetId) {
 
 function showSavePresetModal() {
     openModal(`
-        <div class="modal-header">
-            <h3>💾 Save as Preset</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">💾 Save as Preset</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
+        <div class="mb-6">
             <p class="modal-description">Save your current configuration as a reusable preset.</p>
-            <div class="form-group">
-                <label class="form-label">Preset Name</label>
-                <input type="text" id="preset-name" class="form-input" placeholder="e.g., Battery Save" required>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Preset Name</label>
+                <input type="text" id="preset-name" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., Battery Save" required>
             </div>
-            <div class="form-group">
-                <label class="form-label">Description (optional)</label>
-                <textarea id="preset-description" class="form-input" placeholder="e.g., Low power mode with no animations"></textarea>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Description (optional)</label>
+                <textarea id="preset-description" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., Low power mode with no animations"></textarea>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-add" onclick="saveNewPreset()">Save Preset</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="saveNewPreset()">Save Preset</button>
         </div>
     `);
 }
@@ -2166,39 +2158,39 @@ async function saveNewPreset() {
 
 function showManagePresetsModal() {
     openModal(`
-        <div class="modal-header">
-            <h3>⚙️ Manage Presets</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">⚙️ Manage Presets</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
+        <div class="mb-6">
             ${presets.length === 0 ?
-            '<p class="empty-state">No presets saved yet. Click "Save As" to create your first preset.</p>' :
-            `<div class="presets-list">
+            '<p class="text-center py-8 text-zinc-500 italic">No presets saved yet. Click "Save As" to create your first preset.</p>' :
+            `<div class="space-y-2">
                 ${presets.map(p => `
-                    <div class="preset-item ${p.id === activePreset ? 'active' : ''}">
-                        <div class="preset-info">
-                            <div class="preset-name">
+                    <div class="flex items-center justify-between p-3 bg-zinc-900 border ${p.id === activePreset ? 'border-teal-500 bg-teal-500/5' : 'border-zinc-800 hover:border-zinc-700'} rounded-lg group transition-all">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="flex items-center gap-2 font-medium text-zinc-200">
                                 ${p.name}
-                                ${p.id === activePreset ? '<span class="preset-badge">Active</span>' : ''}
+                                ${p.id === activePreset ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-teal-500/10 text-teal-400 border border-teal-500/20">Active</span>' : ''}
                             </div>
-                            <div class="preset-desc">${p.description || 'No description'}</div>
-                            <div class="preset-meta">Created: ${new Date(p.created_at).toLocaleDateString()}</div>
+                            <div class="text-sm text-zinc-400 mt-0.5 truncate">${p.description || 'No description'}</div>
+                            <div class="text-xs text-zinc-600 mt-1">Created: ${new Date(p.created_at).toLocaleDateString()}</div>
                         </div>
-                        <div class="preset-actions">
+                        <div class="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             ${p.id !== activePreset ? `
-                                <button class="action-btn" onclick="activatePresetFromModal('${p.id}')" title="Activate">▶️</button>
+                                <button class="p-1.5 text-zinc-400 hover:text-teal-400 hover:bg-zinc-800 rounded transition-colors" onclick="activatePresetFromModal('${p.id}')" title="Activate">▶️</button>
                             ` : ''}
-                            <button class="action-btn" onclick="showEditPresetModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${(p.description || '').replace(/'/g, "\\'")}')" title="Edit">✏️</button>
-                            <button class="action-btn" onclick="updatePresetContent('${p.id}')" title="Update with current config">🔄</button>
-                            <button class="action-btn delete" onclick="confirmDeletePreset('${p.id}', '${p.name.replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
+                            <button class="p-1.5 text-zinc-400 hover:text-teal-400 hover:bg-zinc-800 rounded transition-colors" onclick="showEditPresetModal('${p.id}', '${p.name.replace(/'/g, "\\'")}', '${(p.description || '').replace(/'/g, "\\'")}')" title="Edit">✏️</button>
+                            <button class="p-1.5 text-zinc-400 hover:text-teal-400 hover:bg-zinc-800 rounded transition-colors" onclick="updatePresetContent('${p.id}')" title="Update with current config">🔄</button>
+                            <button class="p-1.5 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded transition-colors" onclick="confirmDeletePreset('${p.id}', '${p.name.replace(/'/g, "\\'")}')" title="Delete">🗑️</button>
                         </div>
                     </div>
                 `).join('')}
             </div>`
         }
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Close</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Close</button>
         </div>
     `);
 }
@@ -2210,23 +2202,23 @@ async function activatePresetFromModal(presetId) {
 
 function showEditPresetModal(id, name, description) {
     openModal(`
-        <div class="modal-header">
-            <h3>✏️ Edit Preset</h3>
-            <button class="modal-close" onclick="closeModal()">×</button>
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">✏️ Edit Preset</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
         </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label class="form-label">Preset Name</label>
-                <input type="text" id="edit-preset-name" class="form-input" value="${name}">
+        <div class="mb-6">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Preset Name</label>
+                <input type="text" id="edit-preset-name" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${name}">
             </div>
-            <div class="form-group">
-                <label class="form-label">Description</label>
-                <textarea id="edit-preset-description" class="form-input">${description}</textarea>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Description</label>
+                <textarea id="edit-preset-description" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">${description}</textarea>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn-cancel" onclick="showManagePresetsModal()">Back</button>
-            <button class="btn-add" onclick="updatePreset('${id}')">Save Changes</button>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="showManagePresetsModal()">Back</button>
+            <button class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors" onclick="updatePreset('${id}')">Save Changes</button>
         </div>
     `);
 }

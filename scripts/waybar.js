@@ -153,20 +153,22 @@ function renderList(container, modules, listName, query) {
     container.innerHTML = '';
     modules.filter(m => m.toLowerCase().includes(query)).forEach(m => {
         const el = document.createElement('div');
-        el.className = `module-item ${currentModule === m ? 'active' : ''}`;
-        const isEnabled = listName !== 'available';
-
         // We use onclick attributes. Ensure selectModule is global.
+        el.className = `group flex items-center justify-between p-2.5 rounded-lg text-sm text-zinc-200 bg-zinc-800 border border-zinc-700 cursor-grab mb-2 hover:bg-zinc-700 hover:border-zinc-600 transition-all ${currentModule === m ? 'border-teal-500 bg-teal-500/10' : ''}`;
         el.innerHTML = `
-            <div class="module-content" onclick="selectModule('${m}')">
-                <div class="module-icon-small">${getModuleIcon(m)}</div>
-                <span class="module-name">${m}</span>
+            <div class="flex items-center gap-3 flex-1 cursor-pointer min-w-0" onclick="selectModule('${m}')">
+                <div class="w-8 h-8 rounded bg-zinc-700 flex items-center justify-center text-sm text-zinc-400 flex-shrink-0">${getModuleIcon(m)}</div>
+                <span class="text-xs font-medium text-zinc-300 truncate">${m}</span>
             </div>
-            <div class="module-actions">
-                ${isEnabled ? `
-                    <button class="btn-icon-sm remove" title="Move to Available" onclick="moveModule('${m}', '${listName}', 'available')">✕</button>
+            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                ${plugin_enabled ? `
+                    <button class="p-1.5 text-zinc-400 hover:text-pink-400 hover:bg-white/5 rounded transition-colors" title="Move to Available" onclick="moveModule('${m}', '${listName}', 'available')">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                 ` : `
-                    <button class="btn-icon-sm add" title="Add to Right" onclick="moveModule('${m}', 'available', 'modules-right')">+</button>
+                    <button class="p-1.5 text-zinc-400 hover:text-green-400 hover:bg-white/5 rounded transition-colors" title="Add to Right" onclick="moveModule('${m}', 'available', 'modules-right')">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </button>
                 `}
             </div>
         `;
@@ -299,10 +301,10 @@ function renderForm(schema, config) {
 
     schema.options.forEach(opt => {
         const group = document.createElement('div');
-        group.className = 'waybar-input-group mb-4';
+        group.className = 'mb-4';
 
         const label = document.createElement('label');
-        label.className = 'waybar-label';
+        label.className = 'block text-sm font-medium text-zinc-400 mb-1.5';
         label.textContent = opt.description || opt.name;
         group.appendChild(label);
 
@@ -310,73 +312,57 @@ function renderForm(schema, config) {
         const val = config[opt.name] !== undefined ? config[opt.name] : (opt.default !== undefined ? opt.default : "");
 
         if (opt.type === 'bool') {
-            input = document.createElement('label');
-            input.className = 'toggle';
-
-            const toggle = document.createElement('input');
-            toggle.type = 'checkbox';
-            toggle.checked = val === true;
-            toggle.onchange = (e) => updateFormValue(opt.name, e.target.checked);
-            input.appendChild(toggle);
-
-            const slider = document.createElement('span');
-            slider.className = 'toggle-slider';
-            input.appendChild(slider);
-
-            // Wrapper for label
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex items-center justify-between'; // Use flex for layout or custom class if needed
-            // Actually, form layout puts label above. Let's adjust.
-            // Global form style: label on top, input below.
-            // For toggle, it usually looks better side-by-side or label then toggle.
-            // Let's stick to the previous layout but with new components.
-
-            // Re-doing to match global config-option style roughly or just simple toggle
-            // The loop already added a label for the group. We just need the toggle control.
-
-            // Just return the toggle label directly, and let the group handle layout.
-            // But we need the description next to it? 
-            // The layout is: Group -> Level -> Input.
-
-            // Let's make a container for the toggle and its extra text if any.
+            // Container for toggle
             input = document.createElement('div');
-            input.style.display = 'flex';
-            input.style.alignItems = 'center';
-            input.style.gap = '0.75rem';
+            input.className = 'flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50';
 
+            // Custom toggle structure matching hyprland.js
             const labelToggle = document.createElement('label');
-            labelToggle.className = 'toggle';
+            labelToggle.className = 'relative inline-flex items-center cursor-pointer';
+
             const chk = document.createElement('input');
             chk.type = 'checkbox';
+            chk.className = 'sr-only peer';
             chk.checked = val === true;
             chk.onchange = (e) => updateFormValue(opt.name, e.target.checked);
+
+            const slider = document.createElement('div');
+            slider.className = "w-11 h-6 bg-zinc-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-500/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500";
+
             labelToggle.appendChild(chk);
-            labelToggle.appendChild(document.createElement('span')).className = 'toggle-slider';
+            labelToggle.appendChild(slider);
 
-            input.appendChild(labelToggle);
+            // Label text container
+            const labelContainer = document.createElement('div');
+            const mainLabel = document.createElement('span');
+            mainLabel.className = 'text-sm font-medium text-zinc-200 block';
+            mainLabel.textContent = opt.name; // Use short name for toggle title
 
+            labelContainer.appendChild(mainLabel);
             if (opt.description) {
                 const desc = document.createElement('span');
-                desc.className = 'form-hint';
-                desc.style.marginTop = '0';
+                desc.className = 'text-xs text-zinc-500 block';
                 desc.textContent = opt.description;
-                input.appendChild(desc);
+                labelContainer.appendChild(desc);
             }
+
+            input.appendChild(labelContainer);
+            input.appendChild(labelToggle);
+
+            // Hide the group label since we handled it inside
+            label.style.display = 'none';
         }
         else if (opt.type === 'int' || opt.type === 'float') {
             input = document.createElement('input');
             input.type = 'number';
-            input = document.createElement('input');
-            input.type = 'number';
-            input.className = 'form-input';
+            input.className = 'w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors';
             if (opt.type === 'float') input.step = opt.step || "0.1";
             input.value = val;
             input.oninput = (e) => updateFormValue(opt.name, opt.type === 'int' ? parseInt(e.target.value) : parseFloat(e.target.value));
         }
         else if (opt.type === 'enum' && opt.choices) {
             input = document.createElement('select');
-            input = document.createElement('select');
-            input.className = 'form-select';
+            input.className = 'w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors cursor-pointer';
             opt.choices.forEach(c => {
                 const option = document.createElement('option');
                 option.value = c;
@@ -388,7 +374,7 @@ function renderForm(schema, config) {
         }
         else if (opt.type === 'json') {
             input = document.createElement('textarea');
-            input.className = 'waybar-textarea small';
+            input.className = 'w-full bg-zinc-800 font-mono text-sm text-zinc-200 rounded-lg p-4 border border-zinc-700 focus:border-teal-500 outline-none resize-none transition-all h-32';
             input.value = typeof val === 'object' ? JSON.stringify(val) : val;
             input.onchange = (e) => {
                 try {
@@ -404,7 +390,7 @@ function renderForm(schema, config) {
             // String
             input = document.createElement('input');
             input.type = 'text';
-            input.className = 'form-input';
+            input.className = 'w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors';
             input.value = val;
             input.oninput = (e) => updateFormValue(opt.name, e.target.value);
         }

@@ -58,6 +58,7 @@ async def waybar_page():
         "page_title": "ArchBoard - Waybar Settings",
         "page_header": "Waybar Settings",
         "page_description": "Configure Waybar modules and appearance",
+        "plugin_enabled": "true",
     }))
     return HTMLResponse(parser.html_content)
 

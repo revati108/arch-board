@@ -11,11 +11,16 @@ static_router = APIRouter()
 
 
 @static_router.get("/tailwind.css")
-async def get_output():
-    return Response("")
+async def gen_tw():
+    # return Response("")
     if not config.production:
-        generate_tailwind_css()
-    return FileResponse("assets/css/tailwind.css", media_type="text/css")
+        generate_tailwind_css() # too lazy to fix pytailwind so just removing dep, just do manual
+    # return FileResponse("assets/css/tailwind.css", media_type="text/css")
+    return FileResponse("assets/css/official.css", media_type="text/css")
+
+@static_router.get("/official.css")
+async def ret_official():
+    return FileResponse("assets/css/official.css", media_type="text/css")
 
 @static_router.get("/global.css")
 async def get_global():

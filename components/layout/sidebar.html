@@ -88,7 +88,7 @@
           const isActive = currentPage === item.id;
           // Use custom icon_svg if provided, otherwise fall back to icon key
           const icon = item.icon_svg || icons[item.icon] || icons.default;
-          html += `<a href="${item.url}" class="sidebar-link ${isActive ? 'active' : ''}">${icon}${item.title}</a>`;
+          html += `<a href="${item.url}" class="flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-all duration-150 cursor-pointer border-none hover:bg-white/5 hover:text-zinc-100 ${isActive ? 'bg-teal-500/10 text-teal-500 font-medium' : 'text-zinc-400 bg-transparent'}">${icon}${item.title}</a>`;
         } else if (item.type === 'group') {
           const isExpanded = item.item_ids && item.item_ids.includes(currentPage);
           // Use custom icon_svg if provided, otherwise fall back to icon key
@@ -98,7 +98,7 @@
 
           html += `
             <div class="pt-2">
-              <button onclick="toggleSection('${item.id}-menu', '${item.id}-arrow')" class="sidebar-link w-full justify-between">
+              <button onclick="toggleSection('${item.id}-menu', '${item.id}-arrow')" class="flex items-center justify-between w-full gap-2 px-3 py-2 rounded-md text-sm transition-all duration-150 cursor-pointer border-none hover:bg-white/5 hover:text-zinc-100 text-zinc-400 bg-transparent">
                 <div class="flex items-center gap-2">${icon}${item.title}</div>
                 <svg id="${item.id}-arrow" class="w-3 h-3 transition-transform duration-200 ${arrowClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
@@ -108,7 +108,7 @@
                 ${item.items.map(sub => {
             const subActive = currentPage === sub.id;
             const subIcon = sub.icon_svg || icons[sub.icon] || icons.default;
-            return `<a href="${sub.url}" class="flex items-center sidebar-sublink ${subActive ? 'text-teal-500 bg-white/5' : ''} flex items-center gap-2">
+            return `<a href="${sub.url}" class="flex items-center gap-2 pl-10 pr-3 py-2 text-sm rounded-md transition-all duration-150 border-none hover:text-zinc-100 hover:bg-white/5 ${subActive ? 'text-teal-500 bg-white/5 font-medium' : 'text-zinc-500 bg-transparent'}">
               ${subIcon}
               ${sub.title}
             </a>`;
@@ -148,7 +148,7 @@
     // Set user info
     document.getElementById('user-avatar').textContent = username[0].toUpperCase();
     document.getElementById('user-name').textContent = username;
-    document.getElementById('user-host').textContent = username + '@arch';
+    document.getElementById('user-host').textContent = username + '@localhost';
 
     // Render navigation
     renderSidebar();
