@@ -356,36 +356,37 @@ function switchTab(tabId) {
 function renderTabContent(tabId) {
     const content = document.getElementById('tab-content');
 
-
+    let html = '';
     switch (tabId) {
         case 'monitors':
-            content.innerHTML = renderMonitorsTab();
-            return;
+            html = renderMonitorsTab();
+            break;
         case 'binds':
-            content.innerHTML = renderBindsTab();
-            return;
+            html = renderBindsTab();
+            break;
         case 'gestures':
-            content.innerHTML = renderGesturesTab();
-            return;
+            html = renderGesturesTab();
+            break;
         case 'windowrules':
-            content.innerHTML = renderWindowRulesTab();
-            return;
+            html = renderWindowRulesTab();
+            break;
         case 'layerrules':
-            content.innerHTML = renderLayerRulesTab();
-            return;
+            html = renderLayerRulesTab();
+            break;
         case 'exec':
-            content.innerHTML = renderExecTab();
-            return;
+            html = renderExecTab();
+            break;
         case 'env':
-            content.innerHTML = renderEnvTab();
-            return;
+            html = renderEnvTab();
+            break;
+        default:
+            const tab = schema.find(t => t.id === tabId);
+            if (tab) {
+                html = tab.sections.map(section => renderSection(section)).join('');
+            }
     }
 
-
-    const tab = schema.find(t => t.id === tabId);
-    if (!tab) return;
-    content.innerHTML = tab.sections.map(section => renderSection(section)).join('');
-
+    content.innerHTML = html;
     checkHighlight();
 }
 
@@ -418,48 +419,29 @@ function renderMonitorsTab() {
 }
 
 function renderBindsTab() {
-
-    const grouped = {};
-    binds.forEach(b => {
-        if (!grouped[b.type]) grouped[b.type] = [];
-        grouped[b.type].push(b);
+    const listHtml = UI.renderTable({
+        headers: ['Type', 'Mods', 'Key', 'Dispatcher', 'Params', 'Actions'],
+        data: binds,
+        emptyMessage: 'No keybinds configured',
+        rowRenderer: (b) => `
+            <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.type}</code></td>
+            <td class="p-3 text-zinc-200">${b.mods || '-'}</td>
+            <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.key}</code></td>
+            <td class="p-3 text-zinc-200"><strong>${b.dispatcher}</strong></td>
+            <td class="p-3 text-zinc-500 max-w-[200px] truncate">${b.params || '-'}</td>
+            <td class="p-3 w-24 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditBindModal('${b.type}', '${b.mods || ''}', '${b.key}', '${b.dispatcher}', '${(b.params || '').replace(/'/g, "\\'")}', '${b.raw.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteBind('${b.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                </div>
+            </td>
+        `
     });
 
     return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Keybinds (${binds.length})</h3>
-                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddBindModal()">+ Add Keybind</button>
-            </div>
-            <div class="p-0">
-                <table class="w-full text-left text-sm border-collapse">
-                    <thead>
-                        <tr>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Type</th>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Mods</th>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Key</th>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Dispatcher</th>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Params</th>
-                            <th class="text-zinc-500 font-medium text-xs uppercase tracking-wider p-3 border-b border-zinc-800">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${binds.map(b => `
-                            <tr class="hover:bg-zinc-800/40 border-b border-zinc-800">
-                                <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.type}</code></td>
-                                <td class="p-3 text-zinc-200">${b.mods || '-'}</td>
-                                <td class="p-3 text-zinc-200"><code class="font-mono text-xs">${b.key}</code></td>
-                                <td class="p-3 text-zinc-200"><strong>${b.dispatcher}</strong></td>
-                                <td class="p-3 text-zinc-500 max-w-[200px] truncate">${b.params || '-'}</td>
-                                <td class="p-3 flex gap-2">
-                                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditBindModal('${b.type}', '${b.mods || ''}', '${b.key}', '${b.dispatcher}', '${(b.params || '').replace(/'/g, "\\'")}', '${b.raw.replace(/'/g, "\\'")}')">✏️</button>
-                                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteBind('${b.raw.replace(/'/g, "\\'")}')">🗑️</button>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
+            ${UI.renderSectionHeader('Keybinds', { label: 'Add Keybind', onclick: 'showAddBindModal()' }, binds.length)}
+            ${listHtml}
         </div>
     `;
 }
@@ -509,51 +491,65 @@ function renderGesturesTab() {
 }
 
 function renderWindowRulesTab() {
+    const listHtml = UI.renderTable({
+        headers: ['Type', 'Effect', 'Match', 'Actions'],
+        data: windowrules,
+        emptyMessage: 'No window rules configured',
+        rowRenderer: (r) => `
+            <td class="p-3 w-24">
+                <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-teal-500 font-mono">${r.type}</code>
+            </td>
+            <td class="p-3">
+                <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
+            </td>
+            <td class="p-3 text-zinc-500 text-xs font-mono">
+                ${r.match}
+            </td>
+            <td class="p-3 w-24 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditRuleModal('${r.type}', '${r.effect}', '${r.match.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                </div>
+            </td>
+        `
+    });
+
     return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Window Rules (${windowrules.length})</h3>
-                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddRuleModal()">+ Add Rule</button>
-            </div>
-            <div class="p-2">
-            ${windowrules.length === 0 ? '<p class="text-center text-zinc-500 p-8">No window rules configured</p>' :
-            windowrules.map(r => `
-                    <div class="flex items-center gap-3 p-2.5 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/40">
-                        <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-teal-500 font-mono">${r.type}</code>
-                        <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
-                        <span class="text-zinc-500 text-xs">${r.match}</span>
-                        <div class="ml-auto flex gap-2">
-                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditRuleModal('${r.type}', '${r.effect}', '${r.match.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
+            ${UI.renderSectionHeader('Window Rules', { label: 'Add Rule', onclick: 'showAddRuleModal()' }, windowrules.length)}
+            ${listHtml}
         </div>
     `;
 }
 
 function renderLayerRulesTab() {
+    const listHtml = UI.renderTable({
+        headers: ['Type', 'Effect', 'Namespace', 'Actions'],
+        data: layerrules,
+        emptyMessage: 'No layer rules configured. Layer rules affect surfaces like waybar, rofi, notifications, etc.',
+        rowRenderer: (r) => `
+            <td class="p-3 w-24">
+                <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-purple-500 font-mono">layerrule</code>
+            </td>
+            <td class="p-3">
+                <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
+            </td>
+            <td class="p-3">
+                <span class="text-zinc-500 text-xs">→ ${r.namespace}</span>
+            </td>
+            <td class="p-3 w-24 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditLayerRuleModal('${r.effect.replace(/'/g, "\\'")}', '${r.namespace.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteLayerRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
+                </div>
+            </td>
+        `
+    });
+
     return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Layer Rules (${layerrules.length})</h3>
-                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddLayerRuleModal()">+ Add Layer Rule</button>
-            </div>
-            <div class="p-2">
-            ${layerrules.length === 0 ? '<p class="text-center text-zinc-500 p-8">No layer rules configured. Layer rules affect surfaces like waybar, rofi, notifications, etc.</p>' :
-            layerrules.map(r => `
-                    <div class="flex items-center gap-3 p-2.5 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/40">
-                        <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs text-purple-500 font-mono">layerrule</code>
-                        <span class="text-zinc-200 font-medium text-sm">${r.effect}</span>
-                        <span class="text-zinc-500 text-xs">→ ${r.namespace}</span>
-                        <div class="ml-auto flex gap-2">
-                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditLayerRuleModal('${r.effect.replace(/'/g, "\\'")}', '${r.namespace.replace(/'/g, "\\'")}', '${r.raw.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteLayerRule('${r.raw.replace(/'/g, "\\'")}')">🗑️</button>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
+            ${UI.renderSectionHeader('Layer Rules', { label: 'Add Layer Rule', onclick: 'showAddLayerRuleModal()' }, layerrules.length)}
+            ${listHtml}
         </div>
         <div class="bg-zinc-800/30 rounded-lg p-4 text-sm text-zinc-500">
             <strong class="text-zinc-400">💡 Common Layer Rules:</strong>
@@ -570,115 +566,80 @@ function renderLayerRulesTab() {
 
 
 function renderExecTab() {
-    const execOnce = execCommands.filter(c => c.type === 'exec-once');
-    const exec = execCommands.filter(c => c.type === 'exec');
+    const listHtml = UI.renderTable({
+        headers: ['Type', 'Command', 'Actions'],
+        data: execCommands,
+        emptyMessage: 'No startup commands configured',
+        rowRenderer: (c) => `
+            <td class="p-3 w-32">
+                <code class="bg-zinc-800 px-2 py-0.5 rounded text-xs ${c.type === 'exec-once' ? 'text-purple-500' : 'text-blue-500'} font-mono">${c.type}</code>
+            </td>
+            <td class="p-3">
+                <code class="text-zinc-300 text-sm font-mono break-all">${c.command}</code>
+            </td>
+            <td class="p-3 w-24 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
+                </div>
+            </td>
+        `
+    });
 
     return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Startup Commands</h3>
-                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddExecModal()">+ Add Command</button>
-            </div>
-            <div class="p-2">
-                <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50">exec-once (Run at startup)</h4>
-                ${execOnce.length === 0 ? '<p class="text-center text-zinc-500 p-4 font-sm">No startup commands</p>' :
-            execOnce.map(c => `
-                    <div class="p-2.5 border-b border-zinc-800 last:border-0 flex justify-between items-center hover:bg-zinc-800/40">
-                        <code class="text-zinc-400 text-sm font-mono">${c.command}</code>
-                        <div class="flex gap-2">
-                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
-                        </div>
-                    </div>
-                `).join('')}
-                
-                ${exec.length > 0 ? `
-                <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50 mt-4">exec (Run at startup and reload)</h4>
-                ${exec.map(c => `
-                    <div class="p-2.5 border-b border-zinc-800 last:border-0 flex justify-between items-center hover:bg-zinc-800/40">
-                        <code class="text-zinc-400 text-sm font-mono">${c.command}</code>
-                        <div class="flex gap-2">
-                            <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditExecModal('${c.type}', '${c.command.replace(/'/g, "\\'")}')">✏️</button>
-                            <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteExec('${c.type}', '${c.command.replace(/'/g, "\\'")}')">🗑️</button>
-                        </div>
-                    </div>
-                `).join('')}` : ''}
-            </div>
+            ${UI.renderSectionHeader('Startup Commands', { label: 'Add Command', onclick: 'showAddExecModal()' }, execCommands.length)}
+            ${listHtml}
         </div>
     `;
 }
 
 function renderEnvTab() {
 
-    const categories = {
-        'GTK/GDK': [],
-        'QT': [],
-        'XDG': [],
-        'XCURSOR': [],
-        'NVIDIA': [],
-        'AQ (Aquamarine)': [],
-        'HYPRLAND': [],
-        'Other': []
-    };
+    function getCategory(name) {
+        name = name.toUpperCase();
+        if (name.startsWith('GTK') || name.startsWith('GDK')) return 'GTK/GDK';
+        if (name.startsWith('QT')) return 'QT';
+        if (name.startsWith('XDG')) return 'XDG';
+        if (name.startsWith('XCURSOR')) return 'XCURSOR';
+        if (name.includes('NVIDIA') || name.startsWith('__GL') || name === 'GBM_BACKEND' || name === 'LIBVA_DRIVER_NAME') return 'NVIDIA';
+        if (name.startsWith('AQ_')) return 'AQ (Aquamarine)';
+        if (name.startsWith('HYPRLAND')) return 'HYPRLAND';
+        return 'Other';
+    }
 
-    envVars.forEach(env => {
-        const name = env.name.toUpperCase();
-        if (name.startsWith('GTK') || name.startsWith('GDK')) {
-            categories['GTK/GDK'].push(env);
-        } else if (name.startsWith('QT')) {
-            categories['QT'].push(env);
-        } else if (name.startsWith('XDG')) {
-            categories['XDG'].push(env);
-        } else if (name.startsWith('XCURSOR')) {
-            categories['XCURSOR'].push(env);
-        } else if (name.includes('NVIDIA') || name.startsWith('__GL') || name === 'GBM_BACKEND' || name === 'LIBVA_DRIVER_NAME') {
-            categories['NVIDIA'].push(env);
-        } else if (name.startsWith('AQ_')) {
-            categories['AQ (Aquamarine)'].push(env);
-        } else if (name.startsWith('HYPRLAND')) {
-            categories['HYPRLAND'].push(env);
-        } else {
-            categories['Other'].push(env);
+    const listHtml = UI.renderTable({
+        headers: ['Category', 'Variable', 'Value', 'Actions'],
+        data: envVars,
+        emptyMessage: 'No environment variables configured',
+        rowRenderer: (env) => {
+            const category = getCategory(env.name);
+            return `
+            <td class="p-3 w-32">
+                 <span class="inline-flex items-center rounded-md bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-400 ring-1 ring-inset ring-zinc-700/10">${category}</span>
+            </td>
+            <td class="p-3">
+                <code class="text-teal-500 text-sm font-mono font-medium">${env.name}</code>
+            </td>
+            <td class="p-3">
+                <code class="text-zinc-400 text-sm font-mono break-all">${env.value}</code>
+            </td>
+            <td class="p-3 w-24 text-right">
+                <div class="flex justify-end gap-2">
+                    <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditEnvModal('${env.name}', '${env.value.replace(/'/g, "\\'")}')">✏️</button>
+                    <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteEnv('${env.name}')">🗑️</button>
+                </div>
+            </td>
+            `;
         }
     });
 
-    let html = `
+    return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">Environment Variables (${envVars.length})</h3>
-                <button class="flex items-center gap-2 px-3 py-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-md text-sm transition-colors" onclick="showAddEnvModal()">+ Add Variable</button>
-            </div>
-            <div class="p-2">
-                ${envVars.length === 0 ? '<p class="text-center text-zinc-500 p-8">No environment variables configured</p>' : ''}
-    `;
-
-
-    for (const [category, vars] of Object.entries(categories)) {
-        if (vars.length > 0) {
-            html += `
-                <div class="mb-4 last:mb-0">
-                    <h4 class="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2 pb-2 border-b border-zinc-800/50">${category}</h4>
-                    ${vars.map(env => `
-                        <div class="flex justify-between items-center p-2 bg-zinc-800 rounded mb-1 hover:bg-zinc-700/50 transition-colors">
-                            <span class="font-mono font-medium text-teal-500 text-sm">${env.name}</span>
-                            <span class="font-mono text-zinc-400 text-sm truncate max-w-[60%]">${env.value}</span>
-                            <div class="flex gap-2">
-                                <button class="p-1 text-zinc-500 hover:text-teal-500 transition-colors" onclick="showEditEnvModal('${env.name}', '${env.value.replace(/'/g, "\\'")}')">✏️</button>
-                                <button class="p-1 text-zinc-500 hover:text-red-500 transition-colors" onclick="confirmDeleteEnv('${env.name}')">🗑️</button>
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-    }
-
-    html += `
-            </div>
+            ${UI.renderSectionHeader('Environment Variables', { label: 'Add Variable', onclick: 'showAddEnvModal()' }, envVars.length)}
+            ${listHtml}
         </div>
     `;
-
-    return html;
 }
 
 // =============================================================================
@@ -688,9 +649,7 @@ function renderEnvTab() {
 function renderSection(section) {
     return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden mb-4">
-            <div class="px-5 py-3.5 bg-zinc-800/30 border-b border-zinc-800 flex justify-between items-center">
-                <h3 class="text-sm font-semibold text-zinc-200 uppercase tracking-wider m-0">${section.title}</h3>
-            </div>
+            ${UI.renderSectionHeader(section.title, null)}
             <div class="p-2">
                 ${section.options.map(opt => renderOption(section.name, opt)).join('')}
             </div>
@@ -705,7 +664,7 @@ function renderOption(sectionName, option) {
     const hasChange = path in pendingChanges;
 
     return `
-        <div class="flex justify-between items-center px-4 py-3.5 hover:bg-zinc-800/40 transition-colors rounded-lg mb-1 ${hasChange ? 'bg-teal-500/5 border-l-2 border-teal-500' : ''}" data-path="${path}">
+        <div class="searchable-item flex justify-between items-center px-4 py-3.5 hover:bg-zinc-800/40 transition-colors rounded-lg mb-1 ${hasChange ? 'bg-teal-500/5 border-l-2 border-teal-500' : ''}" data-path="${path}">
             <div class="flex-1 min-w-0 mr-4">
                 <label class="block text-sm font-medium text-zinc-200 mb-0.5">${formatLabel(option.name)}</label>
                 <span class="block text-xs text-zinc-500 truncate max-w-md">${option.description}</span>

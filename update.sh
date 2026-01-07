@@ -8,9 +8,13 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 # Parse arguments
+FORCE_CHECK=false
 for arg in "$@"; do
     if [ "$arg" == "--no-update" ]; then
         exit 0
+    fi
+    if [ "$arg" == "--check-update" ]; then
+        FORCE_CHECK=true
     fi
 done
 
@@ -31,6 +35,8 @@ save_config() {
 # Function to perform update
 do_update() {
     echo "Updating ArchBoard..."
+    rm -f full.html full.html.hash source_state.hash
+
     if git pull; then
         echo "Installing requirements..."
 
@@ -73,6 +79,22 @@ if [ "$POLICY" == "REMIND_LATER" ]; then
     # So after 1 week, we should probably ask again.
     POLICY="ASK"
 fi
+
+# Check Frequency
+NOW=$(date +%s)
+if [ -z "$LAST_CHECK" ]; then
+    LAST_CHECK=0
+fi
+TIME_DIFF=$((NOW - LAST_CHECK))
+
+if [ "$FORCE_CHECK" == "false" ] && [ "$TIME_DIFF" -lt 86400 ]; then
+    # Less than 24 hours since last check
+    exit 0
+fi
+
+# Update Check timestamp
+LAST_CHECK=$NOW
+save_config
 
 # Check Internet
 if ! ping -c 1 github.com &>/dev/null; then

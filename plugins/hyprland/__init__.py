@@ -11,6 +11,7 @@ import os
 
 from plugins.hyprland.helpers.hyprlang import HyprLang
 from plugins.hyprland.helpers.hyprland_schema import get_schema
+from plugins.hyprland.models import EnvUpdate, ExecUpdate, WindowRuleUpdate, BindUpdate, LayerRuleUpdate
 from utils.config import get_context
 from utils.plugins_frontend import register_navigation, NavItem, NavGroup, register_search, SearchItem
 from xtracto import Parser
@@ -441,14 +442,6 @@ async def get_layerrules():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-class LayerRuleUpdate(BaseModel):
-    """Request model for layer rule updates."""
-    action: str                             
-    effect: str
-    namespace: str
-    old_raw: Optional[str] = None
-
-
 @hyprland_router.post("/layerrules")
 async def update_layer_rule(update: LayerRuleUpdate):
     """Add, update, or delete a layer rule."""
@@ -571,42 +564,6 @@ async def get_exec_commands():
                                                                                
                        
                                                                                
-
-class EnvUpdate(BaseModel):
-    """Request model for env var updates."""
-    action: str                             
-    name: str
-    value: Optional[str] = ""
-    old_name: Optional[str] = None               
-
-
-class ExecUpdate(BaseModel):
-    """Request model for exec command updates."""
-    action: str                             
-    type: str                         
-    command: str
-    old_command: Optional[str] = None               
-
-
-class WindowRuleUpdate(BaseModel):
-    """Request model for window rule updates."""
-    action: str                             
-    type: str                                  
-    effect: str
-    match: str
-    old_raw: Optional[str] = None                       
-
-
-class BindUpdate(BaseModel):
-    """Request model for keybind updates."""
-    action: str                             
-    type: str                         
-    mods: str
-    key: str
-    dispatcher: str
-    params: Optional[str] = ""
-    old_raw: Optional[str] = None                       
-
 
 @hyprland_router.get("/env")
 async def get_env_vars():

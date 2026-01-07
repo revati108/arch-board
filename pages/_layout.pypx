@@ -43,4 +43,6 @@ html
         script
             ;;src="scripts/api.js?k={{ cache_key }}";;
         script
+            ;;src="scripts/renderer.js?k={{ cache_key }}";;
+        script
             ;;src="scripts/utils.js?k={{ cache_key }}";;
