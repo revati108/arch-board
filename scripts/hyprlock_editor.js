@@ -196,6 +196,9 @@ class HyprlockEditor {
             const el = this.createWidgetElement(widget);
             widget.element = el;
 
+            // Attach interaction handler
+            el.onmousedown = (e) => this.handleMouseDown(e, widget);
+
             if (widget.id === this.selectedId) {
                 el.classList.add('widget-selected'); // Visual outline
 
@@ -380,11 +383,27 @@ class HyprlockEditor {
 
         } else if (widget.type === 'image') {
             const targetSize = parseInt(d.size) || 150;
-            el.style.overflow = 'hidden';
+            // el is the main container (handles attached here)
+            // It must NOT have overflow hidden.
+            el.style.overflow = 'visible';
 
-            // Border on container
+            // Inner container for actual image masking and border
+            const inner = document.createElement('div');
+            inner.style.width = '100%';
+            inner.style.height = '100%';
+            inner.style.position = 'absolute';
+            inner.style.top = '0';
+            inner.style.left = '0';
+            inner.style.overflow = 'hidden'; // clip image
+
+            // Border on inner container
             if (d.border_size) {
-                el.style.border = `${d.border_size}px solid ${this.parseColor(d.border_color)}`;
+                inner.style.border = `${d.border_size}px solid ${this.parseColor(d.border_color)}`;
+                // Box sizing border-box ensures border is inside the width/height?
+                // Standard CSS default is content-box. If we add border, size increases.
+                // Hyprlock: border is ...? Usually outside or centered.
+                // Let's use box-sizing border-box to keep valid size.
+                inner.style.boxSizing = 'border-box';
             }
 
             const img = document.createElement('img');
@@ -403,7 +422,6 @@ class HyprlockEditor {
             img.src = imgUrl;
 
             // When image loads, calculate proper dimensions based on aspect ratio
-            // Size = scale based on the lesser side of the image
             img.onload = () => {
                 const naturalW = img.naturalWidth;
                 const naturalH = img.naturalHeight;
@@ -415,14 +433,14 @@ class HyprlockEditor {
 
                 el.style.width = `${displayW}px`;
                 el.style.height = `${displayH}px`;
+                // Inner follows parent 100%
 
-                // Apply rounding AFTER we know the dimensions
-                // Rounding -1 means stadium/oval shape (half of lesser side creates pill shape)
+                // Apply rounding to INNER container
                 if (d.rounding === -1) {
                     const lesserDisplaySide = Math.min(displayW, displayH);
-                    el.style.borderRadius = `${lesserDisplaySide / 2}px`;
+                    inner.style.borderRadius = `${lesserDisplaySide / 2}px`;
                 } else if (d.rounding !== undefined && d.rounding !== 0) {
-                    el.style.borderRadius = `${d.rounding}px`;
+                    inner.style.borderRadius = `${d.rounding}px`;
                 }
 
                 img.style.width = '100%';
@@ -432,7 +450,10 @@ class HyprlockEditor {
             // Set initial size while loading
             el.style.width = `${targetSize}px`;
             el.style.height = `${targetSize}px`;
-            el.style.borderRadius = `${targetSize / 2}px`; // Initial circular while loading
+
+            // Initial rounding
+            inner.style.borderRadius = `${targetSize / 2}px`;
+
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
@@ -443,7 +464,8 @@ class HyprlockEditor {
                 el.style.transform = existingTransform + ` rotate(${-d.rotate}deg)`;
             }
 
-            el.appendChild(img);
+            inner.appendChild(img);
+            el.appendChild(inner);
         } else if (widget.type === 'background') {
             // Add classes without removing base classes (keeps it clickable/selectable)
             el.classList.add('inset-0', 'w-full', 'h-full', 'bg-black');

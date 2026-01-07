@@ -286,6 +286,7 @@ class ItemResponse(BaseModel):
     type: str # 'file' or 'folder'
     name: str
     created_at: float
+    path: Optional[str]
     size: Optional[int] = 0
     width: Optional[int] = 0
     height: Optional[int] = 0
