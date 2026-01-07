@@ -13,16 +13,13 @@ Supports:
 """
 
 from __future__ import annotations
+
+import glob as glob_module
+import os
+import re
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, Union, Any, Set
-import re
-import os
-import glob as glob_module
-from requestez.helpers import debug, info, error, warning, log
-
-
-                                                                               
+from typing import Dict, List, Optional, Union, Set
              
                                                                                
 
@@ -572,8 +569,7 @@ class Parser:
             self.skip_newlines()
             if self.peek().type == TokenType.EOF:
                 break
-            debug(f"Parse Loop Token: {self.peek().type} ({self.peek().value})")
-            
+
                                                    
             if self.conditionals and not self.conditionals[-1]:
                 self._skip_conditional_block()
@@ -721,8 +717,6 @@ class Parser:
                                                                      
                 cat = HyprCategory(name=name, key=key)
                 target_cats.append(cat)
-                debug(f"Appended new category {name} (key={key}) to list of size {len(target_cats)}")
-                
                                 
                 self.skip_newlines()
                 while self.peek().type not in (TokenType.RBRACE, TokenType.EOF):
