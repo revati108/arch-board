@@ -2560,10 +2560,54 @@
         .font-noto {
             font-family: 'Noto Sans', sans-serif;
         }
+
+        /* Full Screen Preview Styles */
+        body.hyprlock-fullscreen {
+            overflow: hidden;
+        }
+
+        body.hyprlock-fullscreen #hyprlock-editor {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            padding: 0;
+            max-width: 100%;
+            background: #09090b;
+            /* zinc-950 */
+        }
+
+        body.hyprlock-fullscreen #hyprlock-editor>div:first-child {
+            /* Header */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen #main-editor-card {
+            height: 100vh !important;
+            border: none;
+            border-radius: 0;
+        }
+
+        body.hyprlock-fullscreen .w-64,
+        /* Left Sidebar */
+        body.hyprlock-fullscreen .w-80 {
+            /* Right Sidebar */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen .h-12 {
+            /* Toolbar */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen #canvas-container {
+            background-color: #000;
+        }
     </style>
 
     <!-- Main Editor Card -->
-    <div class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
+    <!-- Main Editor Card -->
+    <div id="main-editor-card"
+        class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
 
         <!-- Left Sidebar: Widget Toolbox -->
         <div class="w-64 shrink-0 bg-zinc-900/50 border-r border-zinc-800 flex flex-col z-20 backdrop-blur-sm">
@@ -2637,12 +2681,28 @@
                             Reset
                         </button>
                     </div>
+
+                    <!-- Full Screen Toggle -->
+                    <div class="flex items-center gap-2 border-l border-zinc-700 pl-4">
+                        <button onclick="hyprlockEditor.toggleFullScreen()"
+                            class="flex items-center gap-2 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs border border-zinc-700 transition-colors">
+                            <span class="material-symbols-rounded text-sm">fullscreen</span>
+                            Preview
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Canvas Container - uses absolute positioning for the scaled canvas -->
             <div id="canvas-container" class="flex-1 overflow-auto relative"
                 style="background-image: radial-gradient(circle, #333 1px, transparent 1px); background-size: 20px 20px;">
+
+                <!-- Exit Full Screen Button (Hidden by default) -->
+                <button id="exit-fullscreen-btn" onclick="hyprlockEditor.toggleFullScreen()"
+                    class="hidden fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white rounded-full shadow-lg backdrop-blur transition-all transform hover:scale-105">
+                    <span class="material-symbols-rounded">fullscreen_exit</span>
+                    Exit Preview
+                </button>
 
                 <!-- The Canvas - absolutely centered using CSS -->
                 <div id="editor-canvas" class="absolute bg-black shadow-2xl ring-1 ring-zinc-800"
@@ -2681,6 +2741,17 @@
             if (!window.hyprlockEditor) {
                 window.hyprlockEditor = new HyprlockEditor();
             }
+
+            // Listen for browser fullscreen exit (e.g. ESC key)
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    // User pressed ESC or exited native fullscreen
+                    // Ensure our UI syncs up
+                    const exitBtn = document.getElementById('exit-fullscreen-btn');
+                    document.body.classList.remove('hyprlock-fullscreen');
+                    if (exitBtn) exitBtn.classList.add('hidden');
+                }
+            });
         });
     </script>
 </div></div><footer
@@ -7745,19 +7816,21 @@ class ImagePicker {
     constructor() {
         this.options = {
             multiselect: false,
-            folderSelect: false,
             onSelect: null
         };
         this.isOpen = false;
-        this.activeTab = 'library'; // library, upload, folders
+
+        // State
+        this.currentFolderId = null;
         this.items = [];
-        this.folders = [];
+        this.breadcrumbs = [];
         this.selected = new Set();
+        this.clipboard = null; // for cut/paste if implemented, or we use drag/drop
 
         // Bind methods
         this.close = this.close.bind(this);
         this.handleUpload = this.handleUpload.bind(this);
-        this.handleFolderUpload = this.handleFolderUpload.bind(this);
+        this.handleDrop = this.handleDrop.bind(this);
     }
 
     static open(options = {}) {
@@ -7771,95 +7844,86 @@ class ImagePicker {
         this.options = { ...this.options, ...options };
         this.isOpen = true;
         this.selected.clear();
-        this.activeTab = 'library';
+        this.currentFolderId = null; // Start at root
 
-        // Adjust modal styling for large content
+        // Adjust modal styling
         const modalContent = document.getElementById('modal-content');
         if (modalContent) {
-            // Save original classes to restore later if needed, or just hardcode reset
-            this.originalClasses = modalContent.className;
-            // Remove width and padding constraints
             modalContent.classList.remove('max-w-md', 'p-6', 'w-full');
-            // Add wider constraints and no padding (header/footer handles it)
-            modalContent.classList.add('max-w-5xl', 'w-[800px]', 'p-0', 'overflow-hidden');
+            modalContent.classList.add('max-w-5xl', 'w-[900px]', 'p-0', 'overflow-hidden');
         }
 
-        // Open modal with content
         openModal(this.getModalContent());
-
-        // Fetch data and populate content
-        this.fetchData();
+        this.fetchItems();
     }
 
     close() {
         this.isOpen = false;
-
-        // Restore modal styling
         const modalContent = document.getElementById('modal-content');
         if (modalContent) {
-            // Reset to default standard modal styles found in layout
             modalContent.className = 'bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-200 [&.active]:scale-100';
         }
-
         closeModal();
     }
 
-    async fetchData() {
+    async fetchItems() {
         try {
-            const res = await fetch('/images/list');
-            const data = await res.json();
-            this.allItems = data.images || [];
-            this.allFolders = data.folders || [];
-            this.items = [...this.allItems];
-            this.folders = [...this.allFolders];
-            this.renderContent();
-        } catch (e) {
-            console.error("Failed to load images", e);
-        }
-    }
+            const url = this.currentFolderId
+                ? `/images/fs/list?parent_id=${this.currentFolderId}`
+                : `/images/fs/list`;
 
-    // Call this when switching tabs or updating UI
-    render() {
-        // Find existing container in modal or re-open modal if needed
-        const container = document.getElementById('ip-modal-container');
-        if (container) {
-            container.outerHTML = this.getModalContent();
-            this.renderContent(); // Re-populate content area
+            const res = await fetch(url);
+            const data = await res.json();
+            this.items = data.items || [];
+            this.breadcrumbs = data.breadcrumbs || [];
+            this.renderContent();
+            this.renderBreadcrumbs();
+        } catch (e) {
+            console.error("Failed to load items", e);
         }
     }
 
     getModalContent() {
-        // Removed outer shell styling (bg, border, shadow) since modal-content handles it
-        // Kept w-full h-[600px] flex flex-col to fill the modal-content
         return `
-            <div id="ip-modal-container" class="w-full h-[600px] flex flex-col animate-in fade-in zoom-in duration-200">
-                <!-- Header -->
-                <div class="px-6 py-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
-                    <h3 class="text-lg font-semibold text-white">Select Image</h3>
-                    <button class="text-zinc-500 hover:text-white" onclick="window._imagePicker.close()">✕</button>
-                </div>
+            <div id="ip-modal-container" class="w-full h-[650px] flex flex-col animate-in fade-in zoom-in duration-200 select-none">
+                <!-- Header / Toolbar -->
+                <div class="px-4 py-3 border-b border-zinc-800 bg-zinc-900 flex justify-between items-center gap-4">
+                    <h3 class="text-lg font-semibold text-white shrink-0">Files</h3>
+                    
+                    <!-- Breadcrumbs -->
+                    <div id="ip-breadcrumbs" class="flex-1 flex items-center overflow-hidden text-sm text-zinc-400 gap-1 px-2">
+                        <!-- Populated via JS -->
+                    </div>
 
-                <!-- Tabs -->
-                <div class="flex border-b border-zinc-800 bg-zinc-900/30">
-                    ${this.renderTab('library', 'Library')}
-                    ${this.renderTab('upload', 'Upload Files')}
-                    ${this.options.folderSelect ? this.renderTab('folders', 'Upload Folder') : ''}
-                    <div class="flex-1"></div>
-                    <div class="p-2">
-                        <input type="text" placeholder="Search..." class="bg-zinc-950 border border-zinc-700 rounded px-3 py-1 text-sm text-zinc-300 focus:border-teal-500 outline-none" oninput="window._imagePicker.filter(this.value)">
+                    <!-- Actions -->
+                    <div class="flex items-center gap-2">
+                        <button onclick="window._imagePicker.createFolderPrompt()" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white" title="New Folder">
+                            📁+
+                        </button>
+                        <button onclick="document.getElementById('ip-upload-input').click()" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white" title="Upload Files">
+                            ☁️
+                        </button>
+                        <input type="file" id="ip-upload-input" class="hidden" multiple accept="image/*" onchange="window._imagePicker.handleUpload(this.files)">
+                        
+                        <button class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white ml-2" onclick="window._imagePicker.close()">✕</button>
                     </div>
                 </div>
 
-                <!-- Content -->
-                <div id="ip-content" class="flex-1 overflow-y-auto p-6 bg-zinc-950/30 relative">
-                    <!-- Loading... -->
-                    <div class="flex justify-center items-center h-full text-zinc-500">Loading...</div>
+                <!-- Main Content Area -->
+                <div class="flex-1 flex overflow-hidden">
+                    <!-- File Grid -->
+                    <div id="ip-content" 
+                         class="flex-1 overflow-y-auto p-4 bg-zinc-950/50"
+                         ondragover="window._imagePicker.onDragOver(event)"
+                         ondrop="window._imagePicker.handleDrop(event)">
+                         <!-- Content -->
+                    </div>
                 </div>
 
                 <!-- Footer -->
-                <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-between items-center">
+                <div class="px-6 py-4 border-t border-zinc-800 bg-zinc-900 flex justify-between items-center">
                     <div class="text-sm text-zinc-500">
-                        ${this.options.multiselect ? '<span id="ip-count">0</span> selected' : ''}
+                        <span id="ip-status">Ready</span>
                     </div>
                     <div class="flex gap-3">
                         <button class="px-4 py-2 text-zinc-400 hover:text-white" onclick="window._imagePicker.close()">Cancel</button>
@@ -7868,111 +7932,91 @@ class ImagePicker {
                         </button>
                     </div>
                 </div>
+                
+                <!-- Context Menu (Hidden) -->
+                <div id="ip-context-menu" class="fixed hidden bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 w-48 py-1">
+                    <button class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white" onclick="window._imagePicker.ctxRename()">Rename</button>
+                    <button class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300" onclick="window._imagePicker.ctxDelete()">Delete</button>
+                </div>
             </div>
         `;
     }
 
-    renderTab(id, label) {
-        const active = this.activeTab === id;
-        return `
-            <button 
-                class="px-6 py-3 text-sm font-medium border-b-2 transition-colors ${active ? 'border-teal-500 text-teal-500 bg-teal-500/5' : 'border-transparent text-zinc-400 hover:text-white hover:bg-zinc-800/50'}"
-                onclick="window._imagePicker.switchTab('${id}')"
-            >
-                ${label}
-            </button>
-        `;
-    }
+    renderBreadcrumbs() {
+        const container = document.getElementById('ip-breadcrumbs');
+        if (!container) return;
 
-    switchTab(tab) {
-        this.activeTab = tab;
-        this.render(); // Re-render shell
-        this.renderContent(); // Render content
+        let html = `<button class="hover:text-white hover:underline px-1" onclick="window._imagePicker.navigateTo(null)">Root</button>`;
+
+        this.breadcrumbs.forEach(crumb => {
+            html += `<span class="text-zinc-600">/</span>`;
+            html += `<button class="hover:text-white hover:underline px-1 truncate max-w-[150px]" onclick="window._imagePicker.navigateTo('${crumb.id}')">${crumb.name}</button>`;
+        });
+
+        container.innerHTML = html;
+        container.scrollLeft = container.scrollWidth;
     }
 
     renderContent() {
         const container = document.getElementById('ip-content');
         if (!container) return;
 
-        if (this.activeTab === 'library') {
-            if (this.items.length === 0) {
-                container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-zinc-500 pb-10">
-                    <div class="text-4xl mb-4 opacity-20">🖼️</div>
-                    <p>No images found</p>
-                    <button class="mt-4 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded text-sm text-zinc-300" onclick="window._imagePicker.switchTab('upload')">Upload Image</button>
+        if (this.items.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-zinc-600 opacity-50">
+                    <div class="text-5xl mb-4">📂</div>
+                    <p>Folder is empty</p>
                 </div>`;
-                return;
-            }
-            container.innerHTML = `
-                <div class="grid grid-cols-4 gap-4">
-                    ${this.items.map(item => this.renderCard(item)).join('')}
-                </div>
-            `;
-        } else if (this.activeTab === 'upload') {
-            container.innerHTML = `
-                <div class="h-full border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center gap-4 text-zinc-400 hover:border-teal-500 hover:bg-zinc-800/20 transition-all cursor-pointer"
-                     onclick="document.getElementById('ip-file-input').click()"
-                     ondragover="event.preventDefault(); this.classList.add('border-teal-500')"
-                     ondragleave="event.preventDefault(); this.classList.remove('border-teal-500')"
-                     ondrop="event.preventDefault(); window._imagePicker.handleDrop(event)"
-                >
-                    <div class="text-4xl">☁️</div>
-                    <p class="font-medium">Click to upload or drag & drop</p>
-                    <p class="text-xs text-zinc-500">Supports PNG, JPG, WEBP</p>
-                    <input type="file" id="ip-file-input" class="hidden" multiple accept="image/*" onchange="window._imagePicker.handleUpload(this.files)">
-                </div>
-            `;
-        } else if (this.activeTab === 'folders') {
-            // Folder Upload UI
-            container.innerHTML = `
-                <div class="flex flex-col h-full">
-                    <div class="mb-6 p-6 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center gap-4 text-zinc-400 hover:border-teal-500 hover:bg-zinc-800/20 transition-all cursor-pointer"
-                        onclick="document.getElementById('ip-folder-input').click()">
-                        <div class="text-4xl">📂</div>
-                        <p class="font-medium">Click to upload a folder</p>
-                        <p class="text-xs text-zinc-500">Recursively uploads all images</p>
-                        <input type="file" id="ip-folder-input" class="hidden" webkitdirectory directory onchange="window._imagePicker.handleFolderUpload(this.files)">
-                    </div>
-                    
-                    <h3 class="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Managed Folders</h3>
-                    <div class="space-y-2">
-                        ${this.folders.length === 0 ? '<p class="text-zinc-500 text-sm italic">No folders uploaded yet</p>' : ''}
-                        ${this.folders.map(f => `
-                            <div class="flex items-center justify-between p-3 bg-zinc-900 border border-zinc-800 rounded-lg hover:border-zinc-700 group">
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xl">📁</span>
-                                    <div>
-                                        <div class="text-sm font-medium text-zinc-200">${f.name}</div>
-                                        <div class="text-xs text-zinc-500 font-mono">${f.path}</div>
-                                    </div>
-                                </div>
-                                <button class="px-3 py-1 bg-zinc-800 hover:bg-teal-500/20 hover:text-teal-400 text-xs rounded transition-colors" onclick="window._imagePicker.selectFolder('${f.id}')">Select</button>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+            return;
         }
-    }
 
-    renderCard(item) {
-        const selected = this.selected.has(item.id);
-        const name = item.name;
-        const url = `/images/raw/${item.id}`;
-
-        return `
-            <div class="group relative aspect-square bg-zinc-900 rounded-lg border-2 overflow-hidden cursor-pointer transition-all ${selected ? 'border-teal-500 ring-2 ring-teal-500/20' : 'border-zinc-800 hover:border-zinc-600'}"
-                 onclick="window._imagePicker.toggleSelect('${item.id}')">
-                <img src="${url}" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" onerror="this.src='/assets/placeholder.png'">
-                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                    <span class="text-xs text-white truncate w-full shadow-black drop-shadow-md">${name}</span>
-                </div>
-                ${selected ? '<div class="absolute top-2 right-2 bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-lg">✓</div>' : ''}
+        container.innerHTML = `
+            <div class="grid grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                ${this.items.map(item => this.renderCard(item)).join('')}
             </div>
         `;
     }
 
-    toggleSelect(id) {
+    renderCard(item) {
+        const isSelected = this.selected.has(item.id);
+        const isFolder = item.type === 'folder';
+
+        let iconOrImg = '';
+        if (isFolder) {
+            iconOrImg = `<div class="w-full h-full flex items-center justify-center bg-zinc-800 text-5xl">📁</div>`;
+        } else {
+            iconOrImg = `<img src="/images/raw/${item.id}" class="w-full h-full object-cover pointer-events-none" draggable="false">`;
+        }
+
+        return `
+            <div class="group relative aspect-[4/5] bg-zinc-900/50 rounded-lg border ${isSelected ? 'border-teal-500 ring-1 ring-teal-500/50' : 'border-zinc-800 hover:border-zinc-600'} flex flex-col overflow-hidden transition-all cursor-pointer"
+                 onclick="window._imagePicker.toggleSelect('${item.id}', ${isFolder})"
+                 ondblclick="${isFolder ? `window._imagePicker.navigateTo('${item.id}')` : `window._imagePicker.confirm('${item.id}')`}"
+                 oncontextmenu="window._imagePicker.showCtxMenu(event, '${item.id}')"
+                 draggable="true"
+                 ondragstart="window._imagePicker.onItemDragStart(event, '${item.id}')"
+                 ondragover="${isFolder ? `window._imagePicker.onItemDragOver(event)` : ''}"
+                 ondrop="${isFolder ? `window._imagePicker.onItemDrop(event, '${item.id}')` : ''}"
+            >
+                <div class="flex-1 overflow-hidden relative">
+                    ${iconOrImg}
+                </div>
+                <div class="h-8 flex items-center px-2 bg-zinc-900 border-t border-zinc-800">
+                    <span class="text-xs text-zinc-300 truncate w-full text-center group-hover:text-white" title="${item.name}">${item.name}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // --- Interaction ---
+
+    navigateTo(folderId) {
+        this.currentFolderId = folderId;
+        this.fetchItems();
+    }
+
+    toggleSelect(id, isFolder) {
+        // Simple single select for files logic usually, but keep simple
         if (this.options.multiselect) {
             if (this.selected.has(id)) this.selected.delete(id);
             else this.selected.add(id);
@@ -7981,21 +8025,52 @@ class ImagePicker {
             this.selected.add(id);
         }
         this.renderContent();
-        this.updateCount();
+
+        // Update status
+        const count = this.selected.size;
+        document.getElementById('ip-status').innerText = count > 0 ? `${count} selected` : 'Ready';
+
+        // Close context menu if open
+        this.closeCtxMenu();
     }
 
-    selectFolder(id) {
-        // Find folder obj
-        const f = this.folders.find(x => x.id === id);
-        if (this.options.onSelect && f) {
-            this.options.onSelect([{ type: 'folder', ...f }]);
-            this.close();
+    confirm(forceId) {
+        let targets = [];
+        if (forceId) targets = [this.items.find(i => i.id === forceId)];
+        else targets = this.items.filter(i => this.selected.has(i.id));
+
+        // Note: Can we select folders as "value"? 
+        // For now, assuming ImagePicker is for IMAGES only.
+        const files = targets.filter(t => t.type === 'file');
+
+        if (files.length === 0) return;
+
+        if (this.options.onSelect) {
+            this.options.onSelect(files);
         }
+        this.close();
     }
 
-    updateCount() {
-        const el = document.getElementById('ip-count');
-        if (el) el.innerText = this.selected.size;
+    // --- File Operations ---
+
+    async createFolderPrompt() {
+        const name = prompt("Enter folder name:", "New Folder");
+        if (!name) return;
+
+        try {
+            const res = await fetch('/images/fs/folder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, parent_id: this.currentFolderId })
+            });
+            if (res.ok) {
+                this.fetchItems();
+            } else {
+                alert("Failed to create folder");
+            }
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     async handleUpload(files) {
@@ -8003,9 +8078,12 @@ class ImagePicker {
 
         const formData = new FormData();
         Array.from(files).forEach(f => formData.append('files', f));
+        if (this.currentFolderId) {
+            formData.append('parent_id', this.currentFolderId);
+        }
 
-        // Show loading state
-        document.getElementById('ip-content').innerHTML = '<div class="flex justify-center items-center h-full text-zinc-400">Uploading...</div>';
+        // Optimistic loading UI?
+        document.getElementById('ip-status').innerText = "Uploading...";
 
         try {
             const res = await fetch('/images/upload', {
@@ -8013,82 +8091,135 @@ class ImagePicker {
                 body: formData
             });
             if (res.ok) {
-                if (window.showToast) window.showToast('Images uploaded successfully', 'success');
-                this.switchTab('library');
-                this.fetchData(); // Refresh list
+                this.fetchItems();
+                document.getElementById('ip-status').innerText = "Upload Complete";
             } else {
-                if (window.showToast) window.showToast('Upload failed', 'error');
-                else alert('Upload failed');
-                this.switchTab('upload');
+                alert("Upload failed");
             }
         } catch (e) {
             console.error(e);
-            if (window.showToast) window.showToast('Upload error', 'error');
-            else alert('Upload error');
+            alert("Upload error");
         }
     }
 
-    async handleFolderUpload(files) {
-        if (!files || files.length === 0) return;
+    // --- Drag & Drop (Move) ---
 
-        const formData = new FormData();
-        const folderName = files[0].webkitRelativePath.split('/')[0] || "Uploaded Folder";
-        formData.append('folder_name', folderName);
+    onItemDragStart(e, id) {
+        e.dataTransfer.setData('curr_id', id);
+        e.dataTransfer.effectAllowed = 'move';
+        this.draggedId = id;
+    }
 
-        Array.from(files).forEach(f => {
-            formData.append('files', f);
-            formData.append('paths', f.webkitRelativePath);
-        });
+    onItemDragOver(e) {
+        e.preventDefault(); // allow drop
+        e.dataTransfer.dropEffect = 'move';
+        e.currentTarget.classList.add('bg-teal-500/20');
+    }
 
-        // Show loading state
-        document.getElementById('ip-content').innerHTML = '<div class="flex justify-center items-center h-full text-zinc-400">Uploading folder... This may take a while.</div>';
+    // Drop ONTO a folder (move into folder)
+    async onItemDrop(e, targetFolderId) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.classList.remove('bg-teal-500/20');
 
+        const sourceId = e.dataTransfer.getData('curr_id');
+        if (!sourceId || sourceId === targetFolderId) return;
+
+        // Execute Move
+        await this.moveItem(sourceId, targetFolderId);
+    }
+
+    // Drop ONTO the background (upload) or move to parent?
+    // Let's handle File upload drop separately
+    onDragOver(e) {
+        e.preventDefault();
+    }
+
+    async handleDrop(e) {
+        e.preventDefault();
+        // Check if files
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            this.handleUpload(e.dataTransfer.files);
+            return;
+        }
+
+        // If internal move (dragged to empty space not allowed/configured yet? 
+        // maybe drag to breadcrumb for parent move in future)
+    }
+
+    async moveItem(itemId, targetParentId) {
         try {
-            const res = await fetch('/images/upload_folder', {
-                method: 'POST',
-                body: formData
+            const res = await fetch(`/images/fs/${itemId}/move`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_parent_id: targetParentId })
             });
             if (res.ok) {
-                if (window.showToast) window.showToast('Folder uploaded successfully', 'success');
-                // Return to folders tab
-                this.switchTab('folders');
-                this.fetchData();
+                this.fetchItems();
             } else {
-                if (window.showToast) window.showToast('Folder upload failed', 'error');
-                else alert('Folder upload failed');
+                alert("Move failed");
             }
         } catch (e) {
             console.error(e);
-            if (window.showToast) window.showToast('Folder upload error', 'error');
-            else alert('Folder upload error');
         }
     }
 
-    handleDrop(e) {
-        const files = e.dataTransfer.files;
-        this.handleUpload(files);
-    }
+    // --- Context Menu ---
 
-    filter(query) {
-        if (!this.allItems) return;
-        const q = query.toLowerCase();
+    showCtxMenu(e, id) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.ctxId = id;
 
-        if (this.activeTab === 'library') {
-            this.items = this.allItems.filter(i => i.name.toLowerCase().includes(q));
-        } else if (this.activeTab === 'folders') {
-            this.folders = this.allFolders.filter(f => f.name.toLowerCase().includes(q));
-        }
+        // Select it
+        this.selected.clear();
+        this.selected.add(id);
         this.renderContent();
+
+        const menu = document.getElementById('ip-context-menu');
+        menu.classList.remove('hidden');
+        menu.style.left = `${e.clientX}px`;
+        menu.style.top = `${e.clientY}px`;
+
+        // Click away listener
+        const close = () => {
+            this.closeCtxMenu();
+            document.removeEventListener('click', close);
+        };
+        document.addEventListener('click', close);
     }
 
-    confirm() {
-        if (this.selected.size === 0) return;
+    closeCtxMenu() {
+        document.getElementById('ip-context-menu').classList.add('hidden');
+        this.ctxId = null;
+    }
 
-        const selectedItems = this.items.filter(i => this.selected.has(i.id));
-        if (this.options.onSelect) {
-            this.options.onSelect(selectedItems);
-        }
-        this.close();
+    async ctxRename() {
+        if (!this.ctxId) return;
+        const item = this.items.find(i => i.id === this.ctxId);
+        const newName = prompt("Rename to:", item.name);
+        if (!newName || newName === item.name) return;
+
+        try {
+            const res = await fetch(`/images/fs/${this.ctxId}/rename`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: newName })
+            });
+            if (res.ok) this.fetchItems();
+        } catch (e) { console.error(e); }
+    }
+
+    async ctxDelete() {
+        if (!this.ctxId) return;
+        if (!confirm("Are you sure you want to delete this item?")) return;
+
+        try {
+            const res = await fetch(`/images/fs/${this.ctxId}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) this.fetchItems();
+        } catch (e) { console.error(e); }
     }
 }
 
@@ -9246,6 +9377,43 @@ class HyprlockEditor {
         } catch (e) {
             showToast('Failed to delete preset', 'error');
         }
+    }
+
+    // =========================================================================
+    // FULL SCREEN PREVIEW
+    // =========================================================================
+
+    toggleFullScreen() {
+        const editor = document.getElementById('hyprlock-editor');
+        const container = document.getElementById('canvas-container');
+        const exitBtn = document.getElementById('exit-fullscreen-btn');
+
+        // Check if we are currently in our internal "preview mode" state
+        const isFullScreen = document.body.classList.contains('hyprlock-fullscreen');
+
+        if (!isFullScreen) {
+            // ENTER Full Screen
+            document.body.classList.add('hyprlock-fullscreen');
+
+            // Try to make browser go full screen
+            if (editor.requestFullscreen) editor.requestFullscreen();
+            else if (editor.webkitRequestFullscreen) editor.webkitRequestFullscreen();
+
+            if (exitBtn) exitBtn.classList.remove('hidden');
+
+        } else {
+            // EXIT Full Screen
+            document.body.classList.remove('hyprlock-fullscreen');
+
+            // Exit browser full screen
+            if (document.exitFullscreen) document.exitFullscreen().catch(e => { });
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen().catch(e => { });
+
+            if (exitBtn) exitBtn.classList.add('hidden');
+        }
+
+        // Force resize update to ensure canvas centers correctly
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
 }
 

@@ -1153,4 +1153,41 @@ class HyprlockEditor {
             showToast('Failed to delete preset', 'error');
         }
     }
+
+    // =========================================================================
+    // FULL SCREEN PREVIEW
+    // =========================================================================
+
+    toggleFullScreen() {
+        const editor = document.getElementById('hyprlock-editor');
+        const container = document.getElementById('canvas-container');
+        const exitBtn = document.getElementById('exit-fullscreen-btn');
+
+        // Check if we are currently in our internal "preview mode" state
+        const isFullScreen = document.body.classList.contains('hyprlock-fullscreen');
+
+        if (!isFullScreen) {
+            // ENTER Full Screen
+            document.body.classList.add('hyprlock-fullscreen');
+
+            // Try to make browser go full screen
+            if (editor.requestFullscreen) editor.requestFullscreen();
+            else if (editor.webkitRequestFullscreen) editor.webkitRequestFullscreen();
+
+            if (exitBtn) exitBtn.classList.remove('hidden');
+
+        } else {
+            // EXIT Full Screen
+            document.body.classList.remove('hyprlock-fullscreen');
+
+            // Exit browser full screen
+            if (document.exitFullscreen) document.exitFullscreen().catch(e => { });
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen().catch(e => { });
+
+            if (exitBtn) exitBtn.classList.add('hidden');
+        }
+
+        // Force resize update to ensure canvas centers correctly
+        setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
+    }
 }

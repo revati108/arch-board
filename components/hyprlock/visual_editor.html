@@ -44,10 +44,54 @@
         .font-noto {
             font-family: 'Noto Sans', sans-serif;
         }
+
+        /* Full Screen Preview Styles */
+        body.hyprlock-fullscreen {
+            overflow: hidden;
+        }
+
+        body.hyprlock-fullscreen #hyprlock-editor {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            padding: 0;
+            max-width: 100%;
+            background: #09090b;
+            /* zinc-950 */
+        }
+
+        body.hyprlock-fullscreen #hyprlock-editor>div:first-child {
+            /* Header */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen #main-editor-card {
+            height: 100vh !important;
+            border: none;
+            border-radius: 0;
+        }
+
+        body.hyprlock-fullscreen .w-64,
+        /* Left Sidebar */
+        body.hyprlock-fullscreen .w-80 {
+            /* Right Sidebar */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen .h-12 {
+            /* Toolbar */
+            display: none !important;
+        }
+
+        body.hyprlock-fullscreen #canvas-container {
+            background-color: #000;
+        }
     </style>
 
     <!-- Main Editor Card -->
-    <div class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
+    <!-- Main Editor Card -->
+    <div id="main-editor-card"
+        class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
 
         <!-- Left Sidebar: Widget Toolbox -->
         <div class="w-64 shrink-0 bg-zinc-900/50 border-r border-zinc-800 flex flex-col z-20 backdrop-blur-sm">
@@ -121,12 +165,28 @@
                             Reset
                         </button>
                     </div>
+
+                    <!-- Full Screen Toggle -->
+                    <div class="flex items-center gap-2 border-l border-zinc-700 pl-4">
+                        <button onclick="hyprlockEditor.toggleFullScreen()"
+                            class="flex items-center gap-2 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs border border-zinc-700 transition-colors">
+                            <span class="material-symbols-rounded text-sm">fullscreen</span>
+                            Preview
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Canvas Container - uses absolute positioning for the scaled canvas -->
             <div id="canvas-container" class="flex-1 overflow-auto relative"
                 style="background-image: radial-gradient(circle, #333 1px, transparent 1px); background-size: 20px 20px;">
+
+                <!-- Exit Full Screen Button (Hidden by default) -->
+                <button id="exit-fullscreen-btn" onclick="hyprlockEditor.toggleFullScreen()"
+                    class="hidden fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white rounded-full shadow-lg backdrop-blur transition-all transform hover:scale-105">
+                    <span class="material-symbols-rounded">fullscreen_exit</span>
+                    Exit Preview
+                </button>
 
                 <!-- The Canvas - absolutely centered using CSS -->
                 <div id="editor-canvas" class="absolute bg-black shadow-2xl ring-1 ring-zinc-800"
@@ -165,6 +225,17 @@
             if (!window.hyprlockEditor) {
                 window.hyprlockEditor = new HyprlockEditor();
             }
+
+            // Listen for browser fullscreen exit (e.g. ESC key)
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    // User pressed ESC or exited native fullscreen
+                    // Ensure our UI syncs up
+                    const exitBtn = document.getElementById('exit-fullscreen-btn');
+                    document.body.classList.remove('hyprlock-fullscreen');
+                    if (exitBtn) exitBtn.classList.add('hidden');
+                }
+            });
         });
     </script>
 </div>
