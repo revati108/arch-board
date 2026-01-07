@@ -2561,6 +2561,78 @@
             font-family: 'Noto Sans', sans-serif;
         }
 
+        /* Widget Handles */
+        .widget-selected {
+            outline: 2px solid #0d9488;
+            /* teal-600 */
+            z-index: 100 !important;
+        }
+
+        .h-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: 1px solid #0d9488;
+            z-index: 101;
+            pointer-events: auto;
+        }
+
+        /* Corners */
+        .h-handle-tl {
+            top: -5px;
+            left: -5px;
+            cursor: nwse-resize;
+        }
+
+        .h-handle-tr {
+            top: -5px;
+            right: -5px;
+            cursor: nesw-resize;
+        }
+
+        .h-handle-bl {
+            bottom: -5px;
+            left: -5px;
+            cursor: nesw-resize;
+        }
+
+        .h-handle-br {
+            bottom: -5px;
+            right: -5px;
+            cursor: nwse-resize;
+        }
+
+        /* Rotate Handle */
+        .h-rotator-line {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            height: 25px;
+            width: 1px;
+            background: #0d9488;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .h-rotator-knob {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: #0d9488;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            cursor: grab;
+            pointer-events: auto;
+            z-index: 102;
+        }
+
+        .h-rotator-knob:active {
+            cursor: grabbing;
+        }
+
         /* Full Screen Preview Styles */
         body.hyprlock-fullscreen {
             overflow: hidden;
@@ -9044,6 +9116,29 @@ class HyprlockEditor {
             const el = this.createWidgetElement(widget);
             widget.element = el;
 
+            if (widget.id === this.selectedId) {
+                el.classList.add('widget-selected'); // Visual outline
+
+                // -- Append Resize Handles --
+                const handles = ['tl', 'tr', 'bl', 'br'];
+                handles.forEach(pos => {
+                    const h = document.createElement('div');
+                    h.className = `h-handle h-handle-${pos}`;
+                    h.onmousedown = (e) => this.onHandleDown(e, widget, pos);
+                    el.appendChild(h);
+                });
+
+                // -- Append Rotate Handle --
+                const rotLine = document.createElement('div');
+                rotLine.className = 'h-rotator-line';
+                el.appendChild(rotLine);
+
+                const rotKnob = document.createElement('div');
+                rotKnob.className = 'h-rotator-knob';
+                rotKnob.onmousedown = (e) => this.onRotateDown(e, widget);
+                el.appendChild(rotKnob);
+            }
+
             if (widget.type === 'background') {
                 bgLayer.appendChild(el);
             } else {
@@ -9547,6 +9642,195 @@ class HyprlockEditor {
             // Set default cursor
             container.style.cursor = 'grab';
         }
+    }
+
+    // =========================================================================
+    // INTERACTION: RESIZE & ROTATE
+    // =========================================================================
+
+    onHandleDown(e, widget, pos) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.isResizing = true;
+        this.activeWidget = widget;
+        this.resizeHandle = pos;
+        this.startMouseX = e.clientX;
+        this.startMouseY = e.clientY;
+
+        // Capture initial state
+        this.initialData = { ...widget.data };
+
+        // Parse current dimensions
+        if (widget.type === 'label') {
+            this.initialFontSize = parseFloat(widget.data.font_size) || 16;
+            // Capture pixel rect for reference? 
+            // Text is hard because width/height aren't direct properties. 
+            // We'll scale font size based on vertical drag.
+        } else if (widget.type === 'image') {
+            this.initialSize = parseInt(widget.data.size) || 150;
+        } else {
+            // Shape/Input: vec2 size
+            const [w, h] = this.parseVec2(widget.data.size);
+            this.initialVecSize = { w, h };
+        }
+
+        // Add global listeners
+        window.addEventListener('mousemove', this.handleInteractMove);
+        window.addEventListener('mouseup', this.handleInteractUp);
+    }
+
+    onRotateDown(e, widget) {
+        e.stopPropagation();
+        e.preventDefault();
+        this.isRotating = true;
+        this.activeWidget = widget;
+
+        // Calculate center of widget in screen space
+        const rect = widget.element.getBoundingClientRect();
+        this.centerX = rect.left + rect.width / 2;
+        this.centerY = rect.top + rect.height / 2;
+        this.initialRotate = parseFloat(widget.data.rotate) || 0;
+
+        // Calculate initial angle of mouse relative to center
+        // Note: atan2(y, x) gives angle in radians.
+        // We want 0 deg at top (convention). atan2(0, -1) is -Math.PI/2 (-90deg).
+        // Standard geometric: 0 is right.
+        this.startAngle = Math.atan2(e.clientY - this.centerY, e.clientX - this.centerX);
+
+        window.addEventListener('mousemove', this.handleInteractMove);
+        window.addEventListener('mouseup', this.handleInteractUp);
+    }
+
+    handleInteractMove = (e) => {
+        if (!this.activeWidget) return;
+
+        // Scale factors for canvas zoom
+        // If canvas is scaled (0.5), mouse movement of 10px = 20px in canvas space?
+        // We should divide delta by scale.
+        const scale = this.scale || 1;
+
+        if (this.isResizing) {
+            const dx = (e.clientX - this.startMouseX) / scale;
+            const dy = (e.clientY - this.startMouseY) / scale;
+
+            this.applyResize(dx, dy);
+        }
+
+        if (this.isRotating) {
+            const currentAngle = Math.atan2(e.clientY - this.centerY, e.clientX - this.centerX);
+            const deltaRad = currentAngle - this.startAngle;
+            const deltaDeg = deltaRad * (180 / Math.PI);
+
+            // Hyprlock uses CCW for positive.
+            // Our visual rotation is inverted (CSS rotate(-deg)).
+            // If we drag CLOCKWISE (screen space), deltaDeg increases (e.g. 0 -> 90).
+            // Hyprlock expects -90 for that? No, Hyprlock 90 is CCW.
+            // So Clockwise drag should REDUCE the Hyprlock angle.
+            // New Angle = Initial - Delta
+
+            let newRotate = this.initialRotate - deltaDeg;
+
+            // Snap to 15 deg?
+            if (e.shiftKey) {
+                newRotate = Math.round(newRotate / 15) * 15;
+            }
+
+            this.updateWidget(this.activeWidget.id, 'rotate', Math.round(newRotate));
+        }
+    }
+
+    handleInteractUp = () => {
+        this.isResizing = false;
+        this.isRotating = false;
+        this.activeWidget = null;
+        window.removeEventListener('mousemove', this.handleInteractMove);
+        window.removeEventListener('mouseup', this.handleInteractUp);
+    }
+
+    applyResize(dx, dy) {
+        const w = this.activeWidget;
+        // Invert deltas based on handle position
+        // e.g. dragging TopLeft Left (dx < 0) means INCREASE width.
+        // But dragging BottomRight Right (dx > 0) means INCREASE width.
+
+        let dWidth = 0;
+        let dHeight = 0;
+
+        if (this.resizeHandle.includes('r')) dWidth = dx;
+        else if (this.resizeHandle.includes('l')) dWidth = -dx;
+
+        if (this.resizeHandle.includes('b')) dHeight = dy;
+        else if (this.resizeHandle.includes('t')) dHeight = -dy;
+
+        // Apply based on type
+        if (w.type === 'image') {
+            // Uniform scaling for images (usually)
+            // Use maximum delta to drive size
+            const change = Math.abs(dWidth) > Math.abs(dHeight) ? dWidth : dHeight;
+            let newSize = this.initialSize + change;
+            if (newSize < 10) newSize = 10;
+            this.updateWidget(w.id, 'size', Math.round(newSize));
+        }
+        else if (w.type === 'label') {
+            // Scale font size based on height change primarily
+            // Heuristic: dHeight pixels change approx maps to points?
+            // Let's say dHeight of 10px -> +10pt?
+            let newSize = this.initialFontSize + dHeight;
+            if (newSize < 6) newSize = 6;
+            this.updateWidget(w.id, 'font_size', Math.round(newSize));
+        }
+        else {
+            // Shape / Input
+            let newW = this.initialVecSize.w + dWidth;
+            let newH = this.initialVecSize.h + dHeight;
+
+            if (newW < 10) newW = 10;
+            if (newH < 10) newH = 10;
+
+            this.updateWidget(w.id, 'size', `${Math.round(newW)}, ${Math.round(newH)}`);
+        }
+    }
+
+    // =========================================================================
+    // END INTERACTION
+    // =========================================================================
+
+    initInteractions() {
+        const canvas = document.getElementById('canvas-container');
+
+        // Panning Logic
+        canvas.addEventListener('mousedown', (e) => {
+            // If middle click or space held
+            if (e.button === 1 || this.isPanningMode) {
+                this.isPanning = true;
+                this.startX = e.clientX - this.panX;
+                this.startY = e.clientY - this.panY;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (this.isPanning) {
+                e.preventDefault();
+                this.panX = e.clientX - this.startX;
+                this.panY = e.clientY - this.startY;
+                this.updateCanvasTransform();
+            }
+        });
+
+        window.addEventListener('mouseup', () => {
+            this.isPanning = false;
+            canvas.style.cursor = '';
+        });
+
+        // Wheel Zoom
+        canvas.addEventListener('wheel', (e) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                this.setZoom(this.scale + delta);
+            }
+        });
     }
 
     updateSelectionAttributes() {

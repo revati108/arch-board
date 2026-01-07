@@ -45,6 +45,78 @@
             font-family: 'Noto Sans', sans-serif;
         }
 
+        /* Widget Handles */
+        .widget-selected {
+            outline: 2px solid #0d9488;
+            /* teal-600 */
+            z-index: 100 !important;
+        }
+
+        .h-handle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border: 1px solid #0d9488;
+            z-index: 101;
+            pointer-events: auto;
+        }
+
+        /* Corners */
+        .h-handle-tl {
+            top: -5px;
+            left: -5px;
+            cursor: nwse-resize;
+        }
+
+        .h-handle-tr {
+            top: -5px;
+            right: -5px;
+            cursor: nesw-resize;
+        }
+
+        .h-handle-bl {
+            bottom: -5px;
+            left: -5px;
+            cursor: nesw-resize;
+        }
+
+        .h-handle-br {
+            bottom: -5px;
+            right: -5px;
+            cursor: nwse-resize;
+        }
+
+        /* Rotate Handle */
+        .h-rotator-line {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            height: 25px;
+            width: 1px;
+            background: #0d9488;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .h-rotator-knob {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: #0d9488;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            cursor: grab;
+            pointer-events: auto;
+            z-index: 102;
+        }
+
+        .h-rotator-knob:active {
+            cursor: grabbing;
+        }
+
         /* Full Screen Preview Styles */
         body.hyprlock-fullscreen {
             overflow: hidden;
