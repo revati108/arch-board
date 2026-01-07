@@ -420,42 +420,58 @@ class HyprConf:
         return None
     
     def set(self, path: str, value: str) -> bool:
-        """Set value by path. Creates categories/lines if needed."""
+        """Set value by path. Creates categories/lines if needed. Handles split categories."""
         parts = self._parse_path(path)
         if not parts:
             return False
         
-                                    
-        current_lines = self.lines
-        current_cats = self.categories
-        current_container: Any = self
+        # Start search from root
+        current_containers = [self]
         
+        # Navigate categories (all parts except last)
         for i, (name, key) in enumerate(parts[:-1]):
-            found = None
-            for cat in current_cats:
-                if cat.name == name and (key is None or cat.key == key):
-                    found = cat
-                    break
-            if not found:
-                found = HyprCategory(name=name, key=key)
-                current_cats.append(found)
-            current_container = found
-            current_lines = found.lines
-            current_cats = found.categories
+            next_containers = []
+            for container in current_containers:
+                # Find all matching sub-categories in this container
+                for cat in container.categories:
+                    if cat.name == name and (key is None or cat.key == key):
+                        next_containers.append(cat)
+            
+            if not next_containers:
+                # Path segment missing. Create new category in the first available container.
+                if not current_containers:
+                    return False
+                
+                # Default to creating in the first container (e.g. root)
+                target_parent = current_containers[0]
+                new_cat = HyprCategory(name=name, key=key)
+                target_parent.categories.append(new_cat)
+                
+                # Continue traversal with the new category
+                next_containers = [new_cat]
+            
+            current_containers = next_containers
         
-                             
+        # We are now at the level where the value should exist.
+        # current_containers contains all matching categories (e.g. all 'general' blocks).
         final_name, final_key = parts[-1]
         
-                             
-        for line in current_lines:
-            if line.key == final_name:
-                line.value = HyprValue(raw=value)
-                return True
+        # 1. Try to update existing key in ANY of the matching containers
+        for container in current_containers:
+            for line in container.lines:
+                if line.key == final_name:
+                    line.value = HyprValue(raw=value)
+                    return True
         
-                         
-        new_line = HyprLine(key=final_name, value=HyprValue(raw=value))
-        current_lines.append(new_line)
-        return True
+        # 2. Key not found in any block. Append to the FIRST matching block.
+        # (or create one if somehow empty, handled above)
+        if current_containers:
+            target_container = current_containers[0]
+            new_line = HyprLine(key=final_name, value=HyprValue(raw=value))
+            target_container.lines.append(new_line)
+            return True
+            
+        return False
     
     def _parse_path(self, path: str) -> List[tuple]:
         """Parse path like 'cat[key]:subcat:var' into [(cat, key), (subcat, None), (var, None)]."""
