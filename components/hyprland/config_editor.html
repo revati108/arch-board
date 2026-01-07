@@ -34,7 +34,6 @@
     </div>
 
     <!-- Tab Navigation -->
-    <!-- Tab Navigation -->
     <div id="tab-nav"
         class="flex flex-wrap gap-2 mb-6 bg-zinc-900/50 p-1.5 rounded-xl border border-zinc-800/50 backdrop-blur-sm sticky top-0 z-10">
         <!-- Tabs rendered by JS -->
@@ -47,21 +46,6 @@
         <div class="flex flex-col items-center justify-center h-96 gap-4 text-zinc-500">
             <div class="w-10 h-10 border-4 border-zinc-800 border-t-teal-500 rounded-full animate-spin"></div>
             <span>Loading configuration...</span>
-        </div>
-    </div>
-
-    <!-- Toast notifications -->
-    <!-- Toast notifications -->
-    <div id="toast-container" class="fixed bottom-6 right-6 flex flex-col gap-2 z-50 pointer-events-none"></div>
-
-    <!-- Modal Overlay -->
-    <div id="modal-overlay"
-        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 [&.active]:opacity-100 [&.active]:pointer-events-auto"
-        onclick="closeModal()">
-        <div id="modal-content"
-            class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-200 [&.active]:scale-100"
-            onclick="event.stopPropagation()">
-            <!-- Modal content rendered by JS -->
         </div>
     </div>
 </div>

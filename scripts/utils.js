@@ -45,7 +45,7 @@ function showToast(message, type = 'info') {
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.className = 'fixed bottom-6 right-6 flex flex-col gap-2 z-[10000] pointers-events-none';
+        container.className = 'fixed bottom-6 right-6 flex flex-col gap-2 z-[9999] pointer-events-none';
         document.body.appendChild(container);
     }
 
@@ -120,6 +120,55 @@ function openGlobalModal(content) {
 function closeGlobalModal() {
     const overlay = document.getElementById('global-modal-overlay');
     if (overlay) overlay.classList.remove('active');
+}
+
+// Shorter aliases for convenience - these check for page-specific modal first
+function openModal(content) {
+    // Check for page-specific modal overlay first (styled consistently with page)
+    const pageOverlay = document.getElementById('modal-overlay');
+    if (pageOverlay) {
+        const modalContent = document.getElementById('modal-content');
+        if (modalContent) {
+            modalContent.innerHTML = content;
+            pageOverlay.classList.add('active');
+            return;
+        }
+    }
+    // Fall back to global modal
+    openGlobalModal(content);
+}
+
+function closeModal() {
+    // Check for page-specific modal overlay first
+    const pageOverlay = document.getElementById('modal-overlay');
+    if (pageOverlay && pageOverlay.classList.contains('active')) {
+        pageOverlay.classList.remove('active');
+        return;
+    }
+    // Fall back to global modal
+    closeGlobalModal();
+}
+
+// Confirm dialog helper - shows a confirmation dialog with customizable action
+function confirmDialog(title, message, onConfirmFn, confirmText = 'Confirm', isDangerous = true) {
+    const buttonClass = isDangerous
+        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50'
+        : 'bg-teal-600 hover:bg-teal-500 text-white';
+
+    openModal(`
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">${title}</h3>
+            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
+        </div>
+        <div class="mb-6">
+            <p class="text-zinc-300">${message}</p>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
+            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
+            <button class="px-4 py-2 ${buttonClass} rounded-lg transition-colors" 
+                onclick="(${onConfirmFn})(); closeModal();">${confirmText}</button>
+        </div>
+    `);
 }
 
 // =============================================================================

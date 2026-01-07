@@ -37,7 +37,11 @@ html
             [[layout/footer.html]]
         [[layout/search_modal.html]]
         div
-            ;;id="toast-container" class="toast-container";;
+            ;;id="modal-overlay" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 [&.active]:opacity-100 [&.active]:pointer-events-auto" onclick="closeModal()";;
+            div
+                ;;id="modal-content" class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md shadow-2xl transform scale-95 transition-transform duration-200 [&.active]:scale-100" onclick="event.stopPropagation()";;
+        div
+            ;;id="toast-container" class="fixed bottom-6 right-6 flex flex-col gap-2 z-[9999] pointer-events-none";;
         script
             ;;src="scripts/main.js?k={{ cache_key }}";;
         script

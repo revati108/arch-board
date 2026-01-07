@@ -19,6 +19,7 @@ from typing import Dict, List, Optional, Union, Any, Set
 import re
 import os
 import glob as glob_module
+from requestez.helpers import debug, info, error, warning, log
 
 
                                                                                
@@ -110,6 +111,8 @@ class Lexer:
         quote = self.advance()                         
         result = []
         while self.peek() and self.peek() != quote:
+            if self.peek() == '\n':
+                break
             if self.peek() == '\\' and self.peek(1) in (quote, '\\'):
                 self.advance()                  
             result.append(self.advance())
@@ -553,6 +556,7 @@ class Parser:
             self.skip_newlines()
             if self.peek().type == TokenType.EOF:
                 break
+            debug(f"Parse Loop Token: {self.peek().type} ({self.peek().value})")
             
                                                    
             if self.conditionals and not self.conditionals[-1]:
@@ -701,6 +705,7 @@ class Parser:
                                                                      
                 cat = HyprCategory(name=name, key=key)
                 target_cats.append(cat)
+                debug(f"Appended new category {name} (key={key}) to list of size {len(target_cats)}")
                 
                                 
                 self.skip_newlines()
@@ -811,8 +816,19 @@ class Parser:
             end_pos = start_pos
             while self.peek().type not in (TokenType.NEWLINE, TokenType.EOF, TokenType.RBRACE, TokenType.COMMENT):
                 token = self.advance()
-                                                           
-                end_pos = token.start_pos + len(token.value)
+                
+                # Correctly calculate length in source text
+                length = len(token.value)
+                if token.type == TokenType.VARIABLE:
+                    length += 1 # $
+                elif token.type == TokenType.STRING:
+                    # Check for quotes in source
+                    if token.start_pos < len(self.source_text) and self.source_text[token.start_pos] in '"\'':
+                        length += 2 # Quotes
+                elif token.type == TokenType.ARITHMETIC:
+                    length += 4 # {{ }}
+                
+                end_pos = token.start_pos + length
             
                                           
             raw = self.source_text[start_pos:end_pos].strip()

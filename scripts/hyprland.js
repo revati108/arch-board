@@ -1001,34 +1001,33 @@ function hexToHyprColor(hex) {
 // Note: showToast is now provided by utils.js globally
 
 // =============================================================================
-// MODAL SYSTEM (page-specific modals)
+// MODAL SYSTEM 
+// Note: openModal(), closeModal(), and confirmDialog() are now provided by 
+// utils.js globally. The functions below delegate to them for backwards 
+// compatibility, or can be removed if the page-specific modal overlay is
+// no longer used.
 // =============================================================================
 
+// Legacy compatibility - if page has a #modal-overlay element, use it
+// Otherwise, fall back to global modal system
 function openModal(content) {
-    const overlay = document.getElementById('modal-overlay');
-    const modalContent = document.getElementById('modal-content');
-    modalContent.innerHTML = content;
-    overlay.classList.add('active');
+    const pageOverlay = document.getElementById('modal-overlay');
+    if (pageOverlay) {
+        const modalContent = document.getElementById('modal-content');
+        modalContent.innerHTML = content;
+        pageOverlay.classList.add('active');
+    } else {
+        openGlobalModal(content);
+    }
 }
 
 function closeModal() {
-    document.getElementById('modal-overlay').classList.remove('active');
-}
-
-function confirmDialog(title, message, onConfirm) {
-    openModal(`
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-bold text-white">${title}</h3>
-            <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
-        </div>
-        <div class="mb-6">
-            <p>${message}</p>
-        </div>
-        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800/50">
-            <button class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors" onclick="closeModal()">Cancel</button>
-            <button class="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/50 rounded-lg transition-colors" onclick="(${onConfirm})(); closeModal();">Delete</button>
-        </div>
-    `);
+    const pageOverlay = document.getElementById('modal-overlay');
+    if (pageOverlay) {
+        pageOverlay.classList.remove('active');
+    } else {
+        closeGlobalModal();
+    }
 }
 
 // =============================================================================
