@@ -190,15 +190,15 @@ try:
     print("Generating string back...")
     new_text = to_string(root)
     
-    # Verify strict equality might be hard if whitespace/normalization differs slightly
-    # But let's check basic round trip length similarity
+                                                                                       
+                                                        
     print(f"Original length: {len(config_text)}")
     print(f"New length: {len(new_text)}")
     
     if len(new_text) < len(config_text) * 0.9:
         print("WARNING: Significant data loss detected!")
     
-    # Try parsing the output again to ensure it's valid structure
+                                                                 
     parse(new_text)
     print("Success: Round trip valid.")
     

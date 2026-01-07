@@ -8,7 +8,7 @@ def test_get_binds(client: TestClient):
     binds = data["binds"]
     assert len(binds) > 0
 
-    # Check for "bind = SUPER, Q, exec, kitty"
+                                              
     q_bind = next((b for b in binds if b["key"] == "Q" and b["dispatcher"] == "exec"), None)
     assert q_bind is not None
     assert q_bind["mods"] == "SUPER"
@@ -26,7 +26,7 @@ def test_add_bind(client: TestClient):
     response = client.post("/hyprland/binds", json=new_bind)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/binds")
     binds = response.json()["binds"]
     t_bind = next((b for b in binds if b["key"] == "T"), None)
@@ -35,8 +35,8 @@ def test_add_bind(client: TestClient):
     assert t_bind["params"] == "thunar"
 
 def test_update_bind(client: TestClient):
-    # Update SUPER+Q to launch alacritty instead of kitty
-    # First get the raw string
+                                                         
+                              
     response = client.get("/hyprland/binds")
     binds = response.json()["binds"]
     q_bind = next(b for b in binds if b["key"] == "Q")
@@ -53,14 +53,14 @@ def test_update_bind(client: TestClient):
     response = client.post("/hyprland/binds", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/binds")
     binds = response.json()["binds"]
     q_bind = next(b for b in binds if b["key"] == "Q")
     assert q_bind["params"] == "alacritty"
 
 def test_delete_bind(client: TestClient):
-    # Delete SUPER+M
+                    
     response = client.get("/hyprland/binds")
     binds = response.json()["binds"]
     m_bind = next(b for b in binds if b["key"] == "M")
@@ -76,7 +76,7 @@ def test_delete_bind(client: TestClient):
     response = client.post("/hyprland/binds", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/binds")
     binds = response.json()["binds"]
     m_bind = next((b for b in binds if b["key"] == "M"), None)

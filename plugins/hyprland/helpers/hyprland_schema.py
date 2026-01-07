@@ -47,7 +47,7 @@ class Option:
 @dataclass
 class Section:
     """A group of related options."""
-    name: str  # Must match the Hyprland category path (e.g., "general", "decoration:blur")
+    name: str                                                                              
     title: str
     options: List[Option] = field(default_factory=list)
     
@@ -76,14 +76,14 @@ class Tab:
         }
 
 
-# =============================================================================
-# SCHEMA DEFINITION
-# =============================================================================
+                                                                               
+                   
+                                                                               
 
 HYPRLAND_SCHEMA = [
-    # =========================================================================
-    # GENERAL TAB
-    # =========================================================================
+                                                                               
+                 
+                                                                               
     Tab(
         id="general",
         title="General",
@@ -93,15 +93,15 @@ HYPRLAND_SCHEMA = [
                 name="general",
                 title="General Settings",
                 options=[
-                    # Gaps & Borders
+                                    
                     Option("border_size", OptionType.INT, 1, "Border size in pixels", min=0, max=10, step=1),
                     Option("gaps_in", OptionType.INT, 5, "Gaps between windows", min=0, max=50, step=1),
                     Option("gaps_out", OptionType.INT, 20, "Gaps between windows and edges", min=0, max=100, step=1),
                     Option("gaps_workspaces", OptionType.INT, 0, "Gaps between workspaces", min=0, max=50, step=1),
-                    # Colors
+                            
                     Option("col.active_border", OptionType.GRADIENT, "0xffffffff", "Active window border color"),
                     Option("col.inactive_border", OptionType.GRADIENT, "0xff444444", "Inactive window border color"),
-                    # Layout
+                            
                     Option("layout", OptionType.ENUM, "dwindle", "Window layout", choices=["dwindle", "master"]),
                     Option("resize_on_border", OptionType.BOOL, False, "Resize by clicking borders"),
                     Option("extend_border_grab_area", OptionType.INT, 15, "Border grab area", min=0, max=50, step=1),
@@ -159,9 +159,9 @@ HYPRLAND_SCHEMA = [
         ]
     ),
     
-    # =========================================================================
-    # DECORATION TAB
-    # =========================================================================
+                                                                               
+                    
+                                                                               
     Tab(
         id="decoration",
         title="Decoration",
@@ -217,9 +217,9 @@ HYPRLAND_SCHEMA = [
         ]
     ),
     
-    # =========================================================================
-    # INPUT TAB
-    # =========================================================================
+                                                                               
+               
+                                                                               
     Tab(
         id="input",
         title="Input",
@@ -229,21 +229,21 @@ HYPRLAND_SCHEMA = [
                 name="input",
                 title="Keyboard & Mouse",
                 options=[
-                    # Keyboard
+                              
                     Option("kb_layout", OptionType.STRING, "us", "Keyboard layout"),
                     Option("kb_variant", OptionType.STRING, "", "Keyboard variant"),
                     Option("kb_options", OptionType.STRING, "", "XKB options"),
                     Option("numlock_by_default", OptionType.BOOL, False, "Numlock on startup"),
                     Option("repeat_rate", OptionType.INT, 25, "Key repeat rate", min=1, max=100, step=1),
                     Option("repeat_delay", OptionType.INT, 600, "Key repeat delay (ms)", min=100, max=2000, step=50),
-                    # Mouse
+                           
                     Option("sensitivity", OptionType.FLOAT, 0.0, "Mouse sensitivity", min=-1.0, max=1.0, step=0.1),
                     Option("accel_profile", OptionType.ENUM, "", "Acceleration", choices=["", "adaptive", "flat"]),
                     Option("force_no_accel", OptionType.BOOL, False, "Force no acceleration"),
                     Option("left_handed", OptionType.BOOL, False, "Left handed mode"),
                     Option("natural_scroll", OptionType.BOOL, False, "Natural scrolling"),
                     Option("scroll_factor", OptionType.FLOAT, 1.0, "Scroll multiplier", min=0.1, max=5.0, step=0.1),
-                    # Focus
+                           
                     Option("follow_mouse", OptionType.INT, 1, "Focus follows mouse (0-3)", min=0, max=3, step=1),
                     Option("mouse_refocus", OptionType.BOOL, True, "Refocus on mouse move"),
                     Option("float_switch_override_focus", OptionType.INT, 1, "Focus on float switch (0-2)", min=0, max=2, step=1),
@@ -283,9 +283,9 @@ HYPRLAND_SCHEMA = [
         ]
     ),
     
-    # =========================================================================
-    # ANIMATIONS TAB
-    # =========================================================================
+                                                                               
+                    
+                                                                               
     Tab(
         id="animations",
         title="Animations",
@@ -296,15 +296,15 @@ HYPRLAND_SCHEMA = [
                 title="Animation Settings",
                 options=[
                     Option("enabled", OptionType.BOOL, True, "Enable animations"),
-                    # Option("first_launch_animation", OptionType.BOOL, True, "Initial launch animation"),  # This option is no longer there in hyprland
+                                                                                                                                                        
                 ]
             ),
         ]
     ),
     
-    # =========================================================================
-    # MISC TAB - Section name MUST be "misc" for vrr to work!
-    # =========================================================================
+                                                                               
+                                                             
+                                                                               
     Tab(
         id="misc",
         title="Misc",
@@ -314,13 +314,13 @@ HYPRLAND_SCHEMA = [
                 name="misc",
                 title="Miscellaneous",
                 options=[
-                    # Appearance
+                                
                     Option("disable_hyprland_logo", OptionType.BOOL, False, "Disable Hyprland logo"),
                     Option("disable_splash_rendering", OptionType.BOOL, False, "Disable splash text"),
                     Option("force_default_wallpaper", OptionType.INT, -1, "Force wallpaper (-1=random)", min=-1, max=2, step=1),
                     Option("font_family", OptionType.STRING, "Sans", "Default font"),
                     Option("background_color", OptionType.COLOR, "0x111111", "Background color"),
-                    # Behavior - VRR is here!
+                                             
                     Option("vfr", OptionType.BOOL, True, "Variable frame rate"),
                     Option("vrr", OptionType.INT, 0, "Adaptive sync (0=off, 1=on, 2=fullscreen, 3=enabled+fullscreen hint)", min=0, max=3, step=1),
                     Option("mouse_move_enables_dpms", OptionType.BOOL, False, "Wake on mouse move"),
@@ -330,20 +330,20 @@ HYPRLAND_SCHEMA = [
                     Option("layers_hog_keyboard_focus", OptionType.BOOL, True, "Layers keep keyboard focus"),
                     Option("animate_manual_resizes", OptionType.BOOL, False, "Animate manual resizes"),
                     Option("animate_mouse_windowdragging", OptionType.BOOL, False, "Animate mouse dragging"),
-                    # Swallowing
+                                
                     Option("enable_swallow", OptionType.BOOL, False, "Enable window swallowing"),
                     Option("swallow_regex", OptionType.STRING, "", "Swallow regex"),
                     Option("swallow_exception_regex", OptionType.STRING, "", "Swallow exception regex"),
-                    # Fullscreen handling
+                                         
                     Option("on_focus_under_fullscreen", OptionType.INT, 0, "Focus under fullscreen (0=nothing, 1=unfullscreen, 2=bringontop, 3=focus unfullscreen)", min=0, max=3, step=1),
                 ]
             ),
         ]
     ),
     
-    # =========================================================================
-    # CURSOR TAB
-    # =========================================================================
+                                                                               
+                
+                                                                               
     Tab(
         id="cursor",
         title="Cursor",
@@ -367,9 +367,9 @@ HYPRLAND_SCHEMA = [
         ]
     ),
     
-    # =========================================================================
-    # ADVANCED TAB
-    # =========================================================================
+                                                                               
+                  
+                                                                               
     Tab(
         id="advanced",
         title="Advanced",

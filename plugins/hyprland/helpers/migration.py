@@ -55,16 +55,16 @@ class HyprlandVersion:
     def parse(cls, output: str) -> Optional['HyprlandVersion']:
         """Parse version from hyprctl output."""
         for line in output.splitlines():
-            # Skip "Hyprland l..." lines
+                                        
             if "Hyprland l" in line:
                 continue
             
-            # Look for version in format "v0.53.0"
+                                                  
             if 'v' in line:
                 pos = line.find('v')
                 version_part = line[pos + 1:]
                 
-                # Extract version string (numbers and dots only)
+                                                                
                 version_str = ""
                 for c in version_part:
                     if c.isdigit() or c == '.':
@@ -83,7 +83,7 @@ class HyprlandVersion:
                     except ValueError:
                         pass
             
-            # Also check for "Tag: v0.53.0" format
+                                                  
             line_stripped = line.strip()
             if line_stripped.startswith("Tag:"):
                 parts = line_stripped.split()
@@ -113,14 +113,14 @@ class HyprlandVersion:
 class ConfigMigrator:
     """Migrates Hyprland config from legacy syntax to new syntax."""
     
-    # Known match keys that should be prefixed with "match:"
+                                                            
     MATCH_KEYS = {
         'class', 'title', 'initialclass', 'initialtitle',
         'floating', 'xwayland', 'pinned', 'workspace',
         'fullscreen', 'monitor', 'address', 'pid', 'uid', 'group'
     }
     
-    # Key renames
+                 
     KEY_RENAMES = {
         'floating': 'float',
     }
@@ -131,23 +131,23 @@ class ConfigMigrator:
         for line in conf.lines:
             key_lower = line.key.lower()
             
-            # windowrulev2 is always legacy
+                                           
             if key_lower == 'windowrulev2':
                 return True
             
-            # windowrule without match: is legacy
+                                                 
             if key_lower == 'windowrule' and 'match:' not in line.value.raw:
                 return True
             
-            # layerrule without match: is legacy
+                                                
             if key_lower == 'layerrule' and 'match:' not in line.value.raw:
                 return True
             
-            # Check for old option names
+                                        
             if 'new_window_takes_over_fullscreen' in key_lower:
                 return True
             
-            # master:inherit_fullscreen is also replaced by misc:on_focus_under_fullscreen
+                                                                                          
             if key_lower == 'master:inherit_fullscreen':
                 return True
         
@@ -220,7 +220,7 @@ class ConfigMigrator:
             is_legacy_layerrule = key_lower == 'layerrule' and 'match:' not in line.value.raw
             
             if is_v2_key or is_legacy_windowrule:
-                # Convert to new windowrule syntax
+                                                  
                 line.key = 'windowrule'
                 
                 raw = line.value.raw
@@ -232,7 +232,7 @@ class ConfigMigrator:
                     
                     new_parts = []
                     
-                    # Split match part for additional conditions
+                                                                
                     secondary_parts = cls._split_respecting_grouping(match_part, ',', max_splits=0)
                     
                     all_parts = [effect] + secondary_parts
@@ -242,7 +242,7 @@ class ConfigMigrator:
                         if not p:
                             continue
                         
-                        # Check if this is a key:value pair that should become match:
+                                                                                     
                         if ':' in p:
                             colon_pos = p.find(':')
                             k = p[:colon_pos].strip()
@@ -253,14 +253,14 @@ class ConfigMigrator:
                                 new_parts.append(f"match:{new_key} {val}")
                                 continue
                         
-                        # Handle special effect transformations
+                                                               
                         p_str = p
                         
-                        # ignorealpha -> ignore_alpha
+                                                     
                         if p_str.startswith('ignorealpha'):
                             p_str = p_str.replace('ignorealpha', 'ignore_alpha', 1)
                         
-                        # Handle "move onscreen cursor X% Y%" transformation
+                                                                            
                         if p_str.startswith('move onscreen cursor'):
                             subparts = p_str.split()
                             if len(subparts) >= 5:
@@ -273,14 +273,14 @@ class ConfigMigrator:
                                 new_parts.append(f"move cursor_x{new_x} cursor_y{new_y}")
                                 continue
                         
-                        # Regular effect - add "on" if no argument
+                                                                  
                         effect_parts = p_str.split(None, 1)
                         if len(effect_parts) == 2:
                             new_parts.append(f"{effect_parts[0]} {effect_parts[1]}")
                         else:
                             new_parts.append(f"{p_str} on")
                     
-                    # If no explicit match: was added, treat the last part as a class match
+                                                                                           
                     any_explicit_match = any(s.startswith('match:') for s in new_parts)
                     if not any_explicit_match and new_parts:
                         last = new_parts.pop()
@@ -293,7 +293,7 @@ class ConfigMigrator:
                 migrated_rules += 1
             
             elif is_legacy_layerrule:
-                # Convert to new layerrule syntax
+                                                 
                 raw = line.value.raw
                 parts = cls._split_respecting_grouping(raw, ',', max_splits=1)
                 
@@ -301,7 +301,7 @@ class ConfigMigrator:
                     effect = parts[0].strip()
                     match_part = parts[1].strip()
                     
-                    # Effect transformations
+                                            
                     if effect == 'stayfocused':
                         effect = 'stay_focused'
                     elif effect == 'ignorezero':
@@ -311,13 +311,13 @@ class ConfigMigrator:
                     
                     new_parts = []
                     
-                    # Add effect with argument
+                                              
                     if ' ' in effect:
                         new_parts.append(effect)
                     else:
                         new_parts.append(f"{effect} on")
                     
-                    # Add namespace match
+                                         
                     new_parts.append(f"match:namespace {match_part}")
                     
                     new_raw = ', '.join(new_parts)
@@ -325,12 +325,12 @@ class ConfigMigrator:
                     
                     migrated_rules += 1
             
-            # Rename misc:new_window_takes_over_fullscreen -> misc:on_focus_under_fullscreen
+                                                                                            
             if 'misc:new_window_takes_over_fullscreen' in line.key.lower():
                 line.key = 'misc:on_focus_under_fullscreen'
                 renamed_options += 1
             
-            # Rename master:inherit_fullscreen -> misc:on_focus_under_fullscreen
+                                                                                
             if line.key.lower() == 'master:inherit_fullscreen':
                 line.key = 'misc:on_focus_under_fullscreen'
                 renamed_options += 1
@@ -354,7 +354,7 @@ class ConfigMigrator:
             except ValueError:
                 pass
         
-        # Non-percentage - just add sign if needed
+                                                  
         if not arg.startswith('-') and not arg.startswith('+'):
             return f"+{arg}"
         return arg.replace('+-', '-')

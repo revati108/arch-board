@@ -20,7 +20,7 @@ def test_add_exec(client: TestClient):
     response = client.post("/hyprland/exec", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/exec")
     execs = response.json()["exec"]
     assert any(e["command"] == "dunst" for e in execs)
@@ -35,7 +35,7 @@ def test_update_exec(client: TestClient):
     response = client.post("/hyprland/exec", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/exec")
     execs = response.json()["exec"]
     assert any(e["command"] == "swaybg -i wallpaper.png" for e in execs)
@@ -50,7 +50,7 @@ def test_delete_exec(client: TestClient):
     response = client.post("/hyprland/exec", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/exec")
     execs = response.json()["exec"]
     assert not any(e["command"] == "waybar" for e in execs)

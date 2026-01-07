@@ -21,31 +21,31 @@ import os
 import glob as glob_module
 
 
-# =============================================================================
-# Token Types
-# =============================================================================
+                                                                               
+             
+                                                                               
 
 class TokenType(Enum):
-    # Literals
-    IDENT = auto()       # identifier or value text
-    VARIABLE = auto()    # $VAR
-    NUMBER = auto()      # numeric value
-    STRING = auto()      # quoted string
+              
+    IDENT = auto()                                 
+    VARIABLE = auto()          
+    NUMBER = auto()                     
+    STRING = auto()                     
     
-    # Operators
-    EQUALS = auto()      # =
-    COLON = auto()       # :
-    LBRACE = auto()      # {
-    RBRACE = auto()      # }
-    LBRACKET = auto()    # [
-    RBRACKET = auto()    # ]
-    COMMA = auto()       # ,
+               
+    EQUALS = auto()         
+    COLON = auto()          
+    LBRACE = auto()         
+    RBRACE = auto()         
+    LBRACKET = auto()       
+    RBRACKET = auto()       
+    COMMA = auto()          
     
-    # Special
-    NEWLINE = auto()     # line break
-    COMMENT = auto()     # # comment
-    DIRECTIVE = auto()   # # hyprlang ...
-    ARITHMETIC = auto()  # {{...}}
+             
+    NEWLINE = auto()                 
+    COMMENT = auto()                
+    DIRECTIVE = auto()                   
+    ARITHMETIC = auto()           
     EOF = auto()
 
 
@@ -55,15 +55,15 @@ class Token:
     value: str
     line: int
     col: int
-    start_pos: int = 0  # Position in source text
+    start_pos: int = 0                           
     
     def __repr__(self):
         return f"Token({self.type.name}, {self.value!r}, L{self.line})"
 
 
-# =============================================================================
-# Lexer
-# =============================================================================
+                                                                               
+       
+                                                                               
 
 class Lexer:
     def __init__(self, text: str):
@@ -107,20 +107,20 @@ class Lexer:
     
     def read_quoted_string(self) -> str:
         """Read a quoted string, handling escapes."""
-        quote = self.advance()  # consume opening quote
+        quote = self.advance()                         
         result = []
         while self.peek() and self.peek() != quote:
             if self.peek() == '\\' and self.peek(1) in (quote, '\\'):
-                self.advance()  # skip backslash
+                self.advance()                  
             result.append(self.advance())
         if self.peek() == quote:
-            self.advance()  # consume closing quote
+            self.advance()                         
         return ''.join(result)
     
     def read_arithmetic(self) -> str:
         """Read {{...}} arithmetic expression."""
-        self.advance()  # first {
-        self.advance()  # second {
+        self.advance()           
+        self.advance()            
         result = []
         depth = 1
         while self.peek() and depth > 0:
@@ -134,8 +134,8 @@ class Lexer:
                     result.append(self.advance())
                     result.append(self.advance())
                 else:
-                    self.advance()  # consume first }
-                    self.advance()  # consume second }
+                    self.advance()                   
+                    self.advance()                    
             else:
                 result.append(self.advance())
         return ''.join(result)
@@ -149,21 +149,21 @@ class Lexer:
             if not ch:
                 break
             
-            # Newline
+                     
             if ch == '\n':
                 self.add_token(TokenType.NEWLINE, '\n')
                 self.advance()
                 continue
             
-            # Comment or directive
+                                  
             if ch == '#':
                 self.advance()
                 if self.peek() == '#':
-                    # Escaped # - treat as literal
+                                                  
                     self.advance()
                     self.add_token(TokenType.IDENT, '#')
                 else:
-                    # Check for hyprlang directive
+                                                  
                     self.skip_whitespace()
                     rest = self.read_until('\n')
                     if rest.startswith('hyprlang '):
@@ -172,22 +172,22 @@ class Lexer:
                         self.add_token(TokenType.COMMENT, rest)
                 continue
             
-            # Variable
+                      
             if ch == '$':
-                var_start = self.pos  # Position of the $
+                var_start = self.pos                     
                 self.advance()
                 name = self.read_until(' \t\n=:{}[]#,')
                 self.add_token(TokenType.VARIABLE, name, start_pos=var_start)
                 continue
             
-            # Arithmetic expression
+                                   
             if ch == '{' and self.peek(1) == '{':
-                # Check for escape
+                                  
                 expr = self.read_arithmetic()
                 self.add_token(TokenType.ARITHMETIC, expr)
                 continue
             
-            # Single-char tokens
+                                
             if ch == '=':
                 pos = self.pos
                 self.advance()
@@ -224,16 +224,16 @@ class Lexer:
                 self.add_token(TokenType.COMMA, ',', start_pos=pos)
                 continue
             
-            # Quoted string
+                           
             if ch in '"\'':
                 s = self.read_quoted_string()
                 self.add_token(TokenType.STRING, s)
                 continue
             
-            # Identifier / value (everything else until special char)
+                                                                     
             ident = self.read_until(' \t\n=:{}[]#,')
             if ident:
-                # Check if numeric
+                                  
                 if re.match(r'^-?\d+(\.\d+)?$', ident):
                     self.add_token(TokenType.NUMBER, ident)
                 else:
@@ -243,9 +243,9 @@ class Lexer:
         return self.tokens
 
 
-# =============================================================================
-# AST Nodes
-# =============================================================================
+                                                                               
+           
+                                                                               
 
 @dataclass
 class HyprValue:
@@ -282,14 +282,14 @@ class HyprArithmetic:
     def evaluate(self, variables: Dict[str, str]) -> Union[int, float, str]:
         """Evaluate simple arithmetic: A op B."""
         expr = self.expr.strip()
-        # Match: operand operator operand
+                                         
         match = re.match(r'(\S+)\s*([+\-*/])\s*(\S+)', expr)
         if not match:
             return expr
         
         left, op, right = match.groups()
         
-        # Resolve variables
+                           
         if left.startswith('$'):
             left = variables.get(left[1:], left)
         elif left in variables:
@@ -315,7 +315,7 @@ class HyprArithmetic:
             else:
                 return expr
             
-            # Return int if whole number
+                                        
             return int(result) if result == int(result) else result
         except ValueError:
             return expr
@@ -326,7 +326,7 @@ class HyprLine:
     """A key=value assignment."""
     key: str
     value: HyprValue
-    is_variable: bool = False  # True if key starts with $
+    is_variable: bool = False                             
     
     def __repr__(self):
         prefix = '$' if self.is_variable else ''
@@ -337,7 +337,7 @@ class HyprLine:
 class HyprCategory:
     """A category block with optional key and nested content."""
     name: str
-    key: Optional[str] = None  # For special categories like device[name]
+    key: Optional[str] = None                                            
     lines: List[HyprLine] = field(default_factory=list)
     categories: List['HyprCategory'] = field(default_factory=list)
     
@@ -369,14 +369,14 @@ class HyprConf:
         """Get resolved variable value."""
         if name in self.variables:
             return self.variables[name].resolve(self._get_var_dict())
-        # Check environment
+                           
         return os.environ.get(name)
     
     def _get_var_dict(self) -> Dict[str, str]:
         """Get all variables as resolved strings."""
         result = {}
         for name, val in self.variables.items():
-            result[name] = val.raw  # Use raw to avoid infinite recursion
+            result[name] = val.raw                                       
         return result
     
     def get(self, path: str) -> Optional[str]:
@@ -391,7 +391,7 @@ class HyprConf:
         if not parts:
             return None
         
-        # Navigate to the right container
+                                         
         current_lines = self.lines
         current_cats = self.categories
         
@@ -406,10 +406,10 @@ class HyprConf:
             current_lines = found.lines
             current_cats = found.categories
         
-        # Get the final value
+                             
         final_name, final_key = parts[-1]
         
-        # Check if it's a line
+                              
         for line in current_lines:
             if line.key == final_name:
                 return line.value.resolve(self._get_var_dict())
@@ -422,7 +422,7 @@ class HyprConf:
         if not parts:
             return False
         
-        # Navigate/create categories
+                                    
         current_lines = self.lines
         current_cats = self.categories
         current_container: Any = self
@@ -440,16 +440,16 @@ class HyprConf:
             current_lines = found.lines
             current_cats = found.categories
         
-        # Set the final value
+                             
         final_name, final_key = parts[-1]
         
-        # Find or create line
+                             
         for line in current_lines:
             if line.key == final_name:
                 line.value = HyprValue(raw=value)
                 return True
         
-        # Create new line
+                         
         new_line = HyprLine(key=final_name, value=HyprValue(raw=value))
         current_lines.append(new_line)
         return True
@@ -459,7 +459,7 @@ class HyprConf:
         result = []
         parts = path.split(':')
         for part in parts:
-            # Check for key like category[key]
+                                              
             match = re.match(r'([^\[]+)(?:\[([^\]]+)\])?', part)
             if match:
                 name = match.group(1)
@@ -473,19 +473,19 @@ class HyprConf:
         prefix = '    ' * indent
         var_dict = self._get_var_dict()
         
-        # Variables first
+                         
         for name, val in self.variables.items():
             lines.append(f"{prefix}${name} = {val.raw}")
         
         if self.variables and (self.lines or self.categories):
             lines.append('')
         
-        # Top-level lines
+                         
         for line in self.lines:
             var_prefix = '$' if line.is_variable else ''
             lines.append(f"{prefix}{var_prefix}{line.key} = {line.value.raw}")
         
-        # Categories
+                    
         for cat in self.categories:
             lines.append('')
             key_str = f'[{cat.key}]' if cat.key else ''
@@ -513,9 +513,9 @@ class HyprConf:
         return '\n'.join(lines)
 
 
-# =============================================================================
-# Parser
-# =============================================================================
+                                                                               
+        
+                                                                               
 
 class Parser:
     def __init__(self, tokens: List[Token], source_text: str = "", 
@@ -524,9 +524,9 @@ class Parser:
         self.source_text = source_text
         self.pos = 0
         self.config = HyprConf()
-        self.conditionals: List[bool] = []  # Stack of conditional states
-        self.base_dir = base_dir or os.getcwd()  # Base directory for resolving relative paths
-        self.parsed_files = parsed_files if parsed_files is not None else set()  # Track parsed files to prevent circular inclusion
+        self.conditionals: List[bool] = []                               
+        self.base_dir = base_dir or os.getcwd()                                               
+        self.parsed_files = parsed_files if parsed_files is not None else set()                                                    
     
     def peek(self, offset: int = 0) -> Token:
         idx = self.pos + offset
@@ -554,7 +554,7 @@ class Parser:
             if self.peek().type == TokenType.EOF:
                 break
             
-            # Check if we're in a false conditional
+                                                   
             if self.conditionals and not self.conditionals[-1]:
                 self._skip_conditional_block()
                 continue
@@ -567,50 +567,50 @@ class Parser:
         """Parse a single line/statement."""
         token = self.peek()
         
-        # Skip comments
+                       
         if token.type == TokenType.COMMENT:
             self.advance()
             return
         
-        # Handle directives
+                           
         if token.type == TokenType.DIRECTIVE:
             self._handle_directive(token.value)
             self.advance()
             return
         
-        # Variable definition: $VAR = value
+                                           
         if token.type == TokenType.VARIABLE:
             self._parse_variable()
             return
         
-        # Identifier - could be:
-        # - key = value
-        # - category { ... }
-        # - cat:subcat:key = value (inline)
+                                
+                       
+                            
+                                           
         if token.type == TokenType.IDENT:
             self._parse_assignment_or_category(lines, categories)
             return
         
-        # Skip unknown
+                      
         self.advance()
     
     def _parse_variable(self):
         """Parse $VAR = value."""
-        var_token = self.advance()  # consume $VAR
+        var_token = self.advance()                
         var_name = var_token.value
         
         self.skip_newlines()
         
         if self.peek().type != TokenType.EQUALS:
             return
-        self.advance()  # consume =
+        self.advance()             
         
         value = self._parse_value()
         self.config.variables[var_name] = value
     
     def _parse_assignment_or_category(self, lines: List[HyprLine], categories: List[HyprCategory]):
         """Parse either key=value or category { }."""
-        # Collect the full path (might be cat:subcat:key)
+                                                         
         path_parts = []
         
         while True:
@@ -618,17 +618,17 @@ class Parser:
                 name = self.advance().value
                 key = None
                 
-                # Check for [key]
+                                 
                 if self.peek().type == TokenType.LBRACKET:
-                    self.advance()  # [
+                    self.advance()     
                     if self.peek().type in (TokenType.IDENT, TokenType.STRING, TokenType.NUMBER):
                         key = self.advance().value
                     if self.peek().type == TokenType.RBRACKET:
-                        self.advance()  # ]
+                        self.advance()     
                 
                 path_parts.append((name, key))
                 
-                # Check for colon (inline path)
+                                               
                 if self.peek().type == TokenType.COLON:
                     self.advance()
                     continue
@@ -640,23 +640,23 @@ class Parser:
         
         self.skip_newlines()
         
-        # Category block
+                        
         if self.peek().type == TokenType.LBRACE:
             self._parse_category_block(path_parts, categories)
             return
         
-        # Assignment
+                    
         if self.peek().type == TokenType.EQUALS:
-            self.advance()  # consume =
+            self.advance()             
             value = self._parse_value()
             
-            # Special handling for source keyword
+                                                 
             final_name, final_key = path_parts[-1]
             if final_name == "source" and len(path_parts) == 1:
                 self._handle_source(value.raw)
                 return
             
-            # Navigate to create nested categories if needed
+                                                            
             target_lines = lines
             target_cats = categories
             
@@ -676,18 +676,18 @@ class Parser:
             target_lines.append(line)
             return
         
-        # Unknown - skip line
+                             
         self.skip_to_newline()
     
     def _parse_category_block(self, path_parts: List[tuple], parent_cats: List[HyprCategory]):
         """Parse a category { ... } block."""
-        self.advance()  # consume {
+        self.advance()             
         
-        # Create nested categories for path
+                                           
         target_cats = parent_cats
         for i, (name, key) in enumerate(path_parts):
             if i < len(path_parts) - 1:
-                # Intermediate category
+                                       
                 found = None
                 for cat in target_cats:
                     if cat.name == name and cat.key == key:
@@ -698,18 +698,18 @@ class Parser:
                     target_cats.append(found)
                 target_cats = found.categories
             else:
-                # Final category - this is the one we're parsing into
+                                                                     
                 cat = HyprCategory(name=name, key=key)
                 target_cats.append(cat)
                 
-                # Parse contents
+                                
                 self.skip_newlines()
                 while self.peek().type not in (TokenType.RBRACE, TokenType.EOF):
                     self._parse_line(cat.lines, cat.categories)
                     self.skip_newlines()
                 
                 if self.peek().type == TokenType.RBRACE:
-                    self.advance()  # consume }
+                    self.advance()             
     
     def _handle_source(self, path_pattern: str):
         """Handle source = path statements by parsing the sourced file(s).
@@ -719,48 +719,48 @@ class Parser:
         - Tilde expansion (~)
         - Glob patterns (*, **, ?)
         """
-        # Expand tilde
+                      
         path_pattern = os.path.expanduser(path_pattern)
         
-        # Resolve relative path against base directory
+                                                      
         if not os.path.isabs(path_pattern):
             path_pattern = os.path.join(self.base_dir, path_pattern)
         
-        # Expand glob patterns
+                              
         matched_files = glob_module.glob(path_pattern, recursive=True)
         
-        # Sort for consistent ordering
+                                      
         matched_files.sort()
         
         for file_path in matched_files:
-            # Skip directories
+                              
             if os.path.isdir(file_path):
                 continue
             
-            # Resolve to absolute path
+                                      
             abs_path = os.path.abspath(file_path)
             
-            # Check for circular inclusion
+                                          
             if abs_path in self.parsed_files:
                 continue
             
-            # Skip if file doesn't exist
+                                        
             if not os.path.exists(abs_path):
                 continue
             
-            # Mark as parsed
+                            
             self.parsed_files.add(abs_path)
             
             try:
-                # Read and parse the file
+                                         
                 with open(abs_path, 'r') as f:
                     source_text = f.read()
                 
-                # Tokenize
+                          
                 lexer = Lexer(source_text)
                 tokens = lexer.tokenize()
                 
-                # Parse with context - pass along parsed_files to prevent circular inclusion
+                                                                                            
                 sub_parser = Parser(
                     tokens, 
                     source_text=source_text,
@@ -769,22 +769,22 @@ class Parser:
                 )
                 sub_config = sub_parser.parse()
                 
-                # Merge the parsed config into our current config
+                                                                 
                 self._merge_config(sub_config)
                 
             except Exception as e:
-                # Silently skip files that can't be parsed
+                                                          
                 pass
     
     def _merge_config(self, other: HyprConf):
         """Merge another config's content into the current config."""
-        # Merge variables
+                         
         self.config.variables.update(other.variables)
         
-        # Append lines
+                      
         self.config.lines.extend(other.lines)
         
-        # Merge categories - if same category exists, merge contents
+                                                                    
         for other_cat in other.categories:
             existing_cat = None
             for cat in self.config.categories:
@@ -793,38 +793,38 @@ class Parser:
                     break
             
             if existing_cat:
-                # Merge lines and subcategories
+                                               
                 existing_cat.lines.extend(other_cat.lines)
                 existing_cat.categories.extend(other_cat.categories)
             else:
-                # Add as new category
+                                     
                 self.config.categories.append(other_cat)
     
     def _parse_value(self) -> HyprValue:
         """Parse a value (everything until newline or special char in context)."""
-        # If we have source text and position info, extract raw text directly
+                                                                             
         if self.source_text and self.peek().type not in (TokenType.NEWLINE, TokenType.EOF):
             start_token = self.peek()
             start_pos = start_token.start_pos
             
-            # Find the end of the value (newline, comment, or rbrace)
+                                                                     
             end_pos = start_pos
             while self.peek().type not in (TokenType.NEWLINE, TokenType.EOF, TokenType.RBRACE, TokenType.COMMENT):
                 token = self.advance()
-                # Update end position to include this token
+                                                           
                 end_pos = token.start_pos + len(token.value)
             
-            # Extract raw text from source
+                                          
             raw = self.source_text[start_pos:end_pos].strip()
             
-            # Parse for variable references
+                                           
             parts = []
             if '$' in raw or '{{' in raw:
-                # Has variables or arithmetic - parse them
+                                                          
                 import re
                 remaining = raw
                 while remaining:
-                    # Look for variable
+                                       
                     var_match = re.match(r'\$(\w+)', remaining)
                     if var_match:
                         if remaining[:var_match.start()]:
@@ -833,7 +833,7 @@ class Parser:
                         remaining = remaining[var_match.end():]
                         continue
                     
-                    # Look for arithmetic
+                                         
                     arith_match = re.match(r'\{\{(.+?)\}\}', remaining)
                     if arith_match:
                         if remaining[:arith_match.start()]:
@@ -842,13 +842,13 @@ class Parser:
                         remaining = remaining[arith_match.end():]
                         continue
                     
-                    # No special patterns - add rest as literal
+                                                               
                     parts.append(remaining)
                     break
             
             return HyprValue(raw=raw, parts=parts if parts else [])
         
-        # Fallback: token-based parsing (less accurate for spacing)
+                                                                   
         parts = []
         raw_parts = []
         
@@ -895,7 +895,7 @@ class Parser:
             if negate:
                 var_name = var_name[1:]
             
-            # Check if variable is truthy
+                                         
             val = self.config.get_variable(var_name)
             is_true = val is not None and val != ''
             
@@ -909,7 +909,7 @@ class Parser:
                 self.conditionals.pop()
         
         elif cmd == 'noerror':
-            # Just acknowledge, we don't error on unknown anyway
+                                                                
             pass
     
     def _skip_conditional_block(self):
@@ -923,16 +923,16 @@ class Parser:
                 elif directive == 'endif':
                     depth -= 1
                     if depth == 0:
-                        self.advance()  # consume the endif
+                        self.advance()                     
                         if self.conditionals:
                             self.conditionals.pop()
                         return
             self.advance()
 
 
-# =============================================================================
-# Main Interface
-# =============================================================================
+                                                                               
+                
+                                                                               
 
 class HyprLang:
     """Main interface for parsing hyprlang config files."""
@@ -949,7 +949,7 @@ class HyprLang:
             text = f.read()
         if len(text) > self.limit:
             raise Exception(f"Config file '{self.file_path}' is too large (limit: {self.limit} chars)")
-        # Initialize parsed_files set with the main file to prevent circular inclusion
+                                                                                      
         parsed_files: Set[str] = {abs_path}
         return self.parse(text, base_dir=os.path.dirname(abs_path), parsed_files=parsed_files)
     

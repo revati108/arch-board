@@ -1,4 +1,4 @@
-// Hyprland Config Editor JavaScript
+ 
 
 let schema = [];
 let config = {};
@@ -13,26 +13,26 @@ let presets = [];
 let activePreset = null;
 let pendingChanges = {};
 let migrationStatus = null;
-// Check for tab param in URL first, then local storage, then default
+ 
 const urlParams = new URLSearchParams(window.location.search);
 let activeTab = urlParams.get('tab') || localStorage.getItem('hyprland_active_tab') || 'general';
 
-// Check if we need to highlight a specific section/option
+ 
 function checkHighlight() {
     const selector = urlParams.get('highlight');
     if (selector) {
-        // Wait for DOM update
+         
         setTimeout(() => {
-            // Note: selector comes from search, e.g. '[data-path="general:gaps_in"]'
-            // We need to support both ID selectors and attribute selectors
+             
+             
             try {
                 const el = document.querySelector(selector);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    // Add highlight classes
+                     
                     const highlightClasses = ['ring-2', 'ring-teal-500', 'bg-teal-500/20', 'transition-all', 'duration-1000'];
                     el.classList.add(...highlightClasses);
-                    // Remove after 3s
+                     
                     setTimeout(() => el.classList.remove(...highlightClasses), 3000);
                 }
             } catch (e) {
@@ -42,10 +42,10 @@ function checkHighlight() {
     }
 }
 
-// Use shared settings from ArchBoard (defined in utils.js)
-// autosaveEnabled and toastsEnabled come from ArchBoard.settings
+ 
+ 
 
-// Special tabs that don't come from schema
+ 
 const SPECIAL_TABS = [
     { id: 'monitors', title: 'Monitors', icon: '🖥️' },
     { id: 'binds', title: 'Keybinds', icon: '⌨️' },
@@ -56,9 +56,9 @@ const SPECIAL_TABS = [
     { id: 'env', title: 'Environment', icon: '🌍' }
 ];
 
-// =============================================================================
-// INITIALIZATION
-// =============================================================================
+ 
+ 
+ 
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTabContent(activeTab);
     renderPresetSelector();
 
-    // Show migration modal if needed
+     
     if (migrationStatus && migrationStatus.needs_migration &&
         migrationStatus.version && migrationStatus.version.supports_new_window_rules) {
         showMigrationModal();
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
-// Getter for autosave status (uses shared ArchBoard settings)
+ 
 function isAutosaveEnabled() {
     return typeof ArchBoard !== 'undefined' ? ArchBoard.settings.autosaveEnabled : false;
 }
@@ -163,6 +163,66 @@ async function loadEnv() {
     }
 }
 
+let openWindows = [];
+let selectedWindowIndex = -1;
+
+function updateRuleMatch(index) {
+    const container = document.getElementById('match-generator-ui');
+
+    if (index === "") {
+        container.classList.add('hidden');
+        document.getElementById('rule-match').value = "";
+        selectedWindowIndex = -1;
+        return;
+    }
+
+    selectedWindowIndex = parseInt(index);
+    container.classList.remove('hidden');
+    generateMatchString();
+}
+
+function generateMatchString() {
+    if (selectedWindowIndex === -1 || !openWindows[selectedWindowIndex]) return;
+
+    const win = openWindows[selectedWindowIndex];
+    const checkedProps = Array.from(document.querySelectorAll('input[name="match-prop"]:checked'));
+
+     
+    if (checkedProps.length === 0) {
+         
+        document.getElementById('rule-match').value = "";
+        return;
+    }
+
+    const mode = document.querySelector('input[name="match-mode"]:checked').value;
+    const matchParts = [];
+
+    checkedProps.forEach(checkbox => {
+        const prop = checkbox.value;
+        let val = win[prop] || "";
+
+         
+        val = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        let regexVal = "";
+        if (mode === 'exact') {
+            regexVal = `^(${val})$`;
+        } else if (mode === 'contains') {
+            regexVal = `.*${val}.*`;
+        } else if (mode === 'starts') {
+            regexVal = `^${val}.*`;
+        } else {
+            regexVal = val;
+        }
+        let key = prop;
+        if (prop === 'initialClass') key = 'initialclass';
+        else if (prop === 'initialTitle') key = 'initialtitle';
+        matchParts.push(`match:${key} ${regexVal}`);
+    });
+
+    document.getElementById('rule-match').value = matchParts.join(', ');
+}
+
 async function loadGestures() {
     try {
         const response = await fetch('/hyprland/gestures');
@@ -230,7 +290,7 @@ async function runMigration() {
         if (result.success && result.migrated) {
             closeModal();
             showToast(`Migrated ${result.migrated_rules} rules. Backup: ${result.backup_path}`, 'success');
-            // Reload data
+             
             await Promise.all([loadWindowRules(), loadLayerRules(), loadConfig()]);
             renderTabContent(activeTab);
         } else if (result.success && !result.migrated) {
@@ -245,15 +305,15 @@ async function runMigration() {
     }
 }
 
-// =============================================================================
-// TAB RENDERING
-// =============================================================================
+ 
+ 
+ 
 
 
 function renderTabs() {
     const nav = document.getElementById('tab-nav');
 
-    // Schema tabs
+     
     const schemaTabs = schema.map(tab => `
         <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
@@ -263,7 +323,7 @@ function renderTabs() {
         </button>
     `).join('');
 
-    // Special tabs
+     
     const specialTabs = SPECIAL_TABS.map(tab => `
         <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
@@ -280,7 +340,7 @@ function switchTab(tabId) {
     activeTab = tabId;
     localStorage.setItem('hyprland_active_tab', tabId);
 
-    // Update tab buttons
+     
     document.querySelectorAll('[data-tab]').forEach(btn => {
         const isActive = btn.dataset.tab === tabId;
         if (isActive) {
@@ -296,7 +356,7 @@ function switchTab(tabId) {
 function renderTabContent(tabId) {
     const content = document.getElementById('tab-content');
 
-    // Handle special tabs
+     
     switch (tabId) {
         case 'monitors':
             content.innerHTML = renderMonitorsTab();
@@ -321,7 +381,7 @@ function renderTabContent(tabId) {
             return;
     }
 
-    // Handle schema tabs
+     
     const tab = schema.find(t => t.id === tabId);
     if (!tab) return;
     content.innerHTML = tab.sections.map(section => renderSection(section)).join('');
@@ -329,9 +389,9 @@ function renderTabContent(tabId) {
     checkHighlight();
 }
 
-// =============================================================================
-// SPECIAL TAB RENDERERS
-// =============================================================================
+ 
+ 
+ 
 
 function renderMonitorsTab() {
     return `
@@ -358,7 +418,7 @@ function renderMonitorsTab() {
 }
 
 function renderBindsTab() {
-    // Group binds by type
+     
     const grouped = {};
     binds.forEach(b => {
         if (!grouped[b.type]) grouped[b.type] = [];
@@ -549,7 +609,7 @@ function renderExecTab() {
 }
 
 function renderEnvTab() {
-    // Group env vars by prefix/category
+     
     const categories = {
         'GTK/GDK': [],
         'QT': [],
@@ -592,7 +652,7 @@ function renderEnvTab() {
                 ${envVars.length === 0 ? '<p class="text-center text-zinc-500 p-8">No environment variables configured</p>' : ''}
     `;
 
-    // Render each category that has vars
+     
     for (const [category, vars] of Object.entries(categories)) {
         if (vars.length > 0) {
             html += `
@@ -1134,10 +1194,10 @@ function showAddExecModal() {
         </div>
         <div class="mb-6">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Type</label>
-                <select id="exec-type" class="form-select">
-                    <option value="exec-once">exec-once (Run at startup)</option>
-                    <option value="exec">exec (Run at startup and reload)</option>
+                <label class="block text-zinc-400 text-sm mb-1">Type</label>
+                <select id="exec-type" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                    <option value="exec-once">exec-once (Startup)</option>
+                    <option value="exec">exec (Always)</option>
                 </select>
             </div>
             <div class="mb-4">
@@ -1202,11 +1262,11 @@ function showEditExecModal(type, command) {
                                 <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
                             </div>
                             <div class="mb-6">
-                                <div class="mb-4">
-                                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Type</label>
-                                    <select id="exec-type" class="form-select">
-                                        <option value="exec-once" ${type === 'exec-once' ? 'selected' : ''}>exec-once (Run at startup)</option>
-                                        <option value="exec" ${type === 'exec' ? 'selected' : ''}>exec (Run at startup and reload)</option>
+                                <div class="w-1/3">
+                                    <label class="block text-zinc-400 text-xs mb-1">Type</label>
+                                    <select id="exec-type" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                                        <option value="exec-once" ${type === 'exec-once' ? 'selected' : ''}>exec-once</option>
+                                        <option value="exec" ${type === 'exec' ? 'selected' : ''}>exec</option>
                                     </select>
                                 </div>
                                 <div class="mb-4">
@@ -1245,7 +1305,7 @@ async function updateExecCommand(oldType, oldCommand) {
 // WINDOW RULES CRUD
 // =============================================================================
 
-let openWindows = [];
+
 
 async function loadOpenWindows() {
     try {
@@ -1259,8 +1319,8 @@ async function loadOpenWindows() {
 
 function showAddRuleModal() {
     loadOpenWindows().then(() => {
-        const windowOptions = openWindows.map(w =>
-            `<option value="${w.class}">${w.class} - ${w.title.substring(0, 40)}</option>`
+        const windowOptions = openWindows.map((w, index) =>
+            `<option value="${index}">${w.class} - ${w.title ? w.title.substring(0, 30) : 'No Title'}</option>`
         ).join('');
 
         openModal(`
@@ -1271,27 +1331,114 @@ function showAddRuleModal() {
             <div class="mb-6">
                 <input type="hidden" id="rule-type" value="windowrule">
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
-                    <select id="rule-effect" class="form-select">
-                        <option value="float">float</option>
-                        <option value="tile">tile</option>
-                        <option value="fullscreen">fullscreen</option>
-                        <option value="maximize">maximize</option>
-                        <option value="nofocus">nofocus</option>
-                        <option value="pin">pin</option>
-                        <option value="opacity 0.9">opacity 0.9</option>
-                        <option value="noborder">noborder</option>
-                        <option value="noshadow">noshadow</option>
-                        <option value="noblur">noblur</option>
-                        <option value="center">center</option>
-                    </select>
+                    <label class="block text-zinc-400 text-sm mb-1">Effect</label>
+                <label class="block text-zinc-400 text-sm mb-1">Effect</label>
+                <div class="space-y-2">
+                    <!-- Manual Input -->
+                    <input type="text" id="rule-effect-input" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., float, center, opacity 0.9">
+                    
+                    <!-- Presets -->
+                    <div class="relative">
+                        <select id="rule-effect-preset" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors appearance-none text-zinc-400" onchange="document.getElementById('rule-effect-input').value = this.value; this.value = '';">
+                            <option value="">Select a preset to fill above...</option>
+                            <!-- Common effects -->
+                            <optgroup label="Window State">
+                                <option value="float">Float</option>
+                                <option value="tile">Tile</option>
+                                <option value="fullscreen">Fullscreen</option>
+                                <option value="maximize">Maximize</option>
+                                <option value="nofocus">No Focus</option>
+                                <option value="pin">Pin</option>
+                                <option value="center">Center</option>
+                            </optgroup>
+                            <optgroup label="Appearance">
+                                <option value="opacity 0.9">Opacity 0.9</option>
+                                <option value="noborder">No Border</option>
+                                <option value="noshadow">No Shadow</option>
+                                <option value="noblur">No Blur</option>
+                            </optgroup>
+                            <optgroup label="Workspace">
+                                <option value="workspace 1">Workspace 1</option>
+                                <option value="workspace special">Special Workspace</option>
+                            </optgroup>
+                            <optgroup label="Size/Position">
+                                <option value="size 80% 80%">Size 80% 80%</option>
+                                <option value="size 1000 600">Size 1000x600</option>
+                                <option value="exactsize 800 400">Exact Size 800x400</option>
+                                <option value="min_size 200 200">Min Size 200x200</option>
+                                <option value="max_size 1200 800">Max Size 1200x800</option>
+                                <option value="move 100 50">Move 100x50</option>
+                                <option value="move 0 0">Move to Top-Left</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="noinitialfocus">No Initial Focus</option>
+                                <option value="noanim">No Animation</option>
+                                <option value="windowdance">Window Dance</option>
+                                <option value="noopaque">No Opaque</option>
+                                <option value="forceinput">Force Input</option>
+                                <option value="animation slide">Animation Slide</option>
+                                <option value="animation popin">Animation Pop-in</option>
+                                <option value="animation fade">Animation Fade</option>
+                            </optgroup>
+                        </select>
+                    </div>
                 </div>
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-zinc-400 mb-1.5">Match Window (select from open)</label>
-                    <select id="rule-window-select" class="form-select" onchange="document.getElementById('rule-match').value = this.value ? 'class:' + this.value : ''">
-                        <option value="">-- Choose window --</option>
-                        ${windowOptions}
-                    </select>
+                    <label class="block text-zinc-400 text-sm mb-1">Select Open Window</label>
+                <div class="relative">
+                <div class="mb-4">
+                    <label class="block text-zinc-400 text-sm mb-1">Select Open Window</label>
+                    <div class="relative">
+                        <select id="rule-window-select" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors appearance-none" onchange="updateRuleMatch(this.value)">
+                            <option value="">-- Select a window to auto-fill --</option>
+                            ${windowOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Match Generator UI -->
+                <div id="match-generator-ui" class="hidden mb-4 p-4 bg-zinc-900/50 rounded-md border border-zinc-700/50">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-zinc-500 mb-2 uppercase font-bold tracking-wider">Match Property</div>
+                            <div class="space-y-2" id="match-props-container">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="match-prop" value="class" checked onchange="generateMatchString()" class="text-teal-500 rounded border-zinc-600 bg-zinc-800 focus:ring-teal-500">
+                                    <span class="text-sm text-zinc-300">Class</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="match-prop" value="title" onchange="generateMatchString()" class="text-teal-500 rounded border-zinc-600 bg-zinc-800 focus:ring-teal-500">
+                                    <span class="text-sm text-zinc-300">Title</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="match-prop" value="initialClass" onchange="generateMatchString()" class="text-teal-500 rounded border-zinc-600 bg-zinc-800 focus:ring-teal-500">
+                                    <span class="text-sm text-zinc-300">Initial Class</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="checkbox" name="match-prop" value="initialTitle" onchange="generateMatchString()" class="text-teal-500 rounded border-zinc-600 bg-zinc-800 focus:ring-teal-500">
+                                    <span class="text-sm text-zinc-300">Initial Title</span>
+                                </label>
+                            </div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-zinc-500 mb-2 uppercase font-bold tracking-wider">Precision</div>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="match-mode" value="exact" checked onclick="generateMatchString()" class="text-teal-500 focus:ring-teal-500 bg-zinc-800 border-zinc-600">
+                                    <span class="text-sm text-zinc-300">Exact Match (^...$)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="match-mode" value="starts" onclick="generateMatchString()" class="text-teal-500 focus:ring-teal-500 bg-zinc-800 border-zinc-600">
+                                    <span class="text-sm text-zinc-300">Starts With (^...)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer">
+                                    <input type="radio" name="match-mode" value="contains" onclick="generateMatchString()" class="text-teal-500 focus:ring-teal-500 bg-zinc-800 border-zinc-600">
+                                    <span class="text-sm text-zinc-300">Contains (.*...*)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-zinc-400 mb-1.5">Or enter match manually</label>
@@ -1308,7 +1455,7 @@ function showAddRuleModal() {
 
 async function addWindowRule() {
     const type = document.getElementById('rule-type').value;
-    const effect = document.getElementById('rule-effect').value;
+    const effect = document.getElementById('rule-effect-input').value.trim();
     const match = document.getElementById('rule-match').value.trim();
     if (!match) return showToast('Match criteria is required', 'error');
 
@@ -1947,16 +2094,16 @@ function showAddGestureModal() {
         </div>
         <div class="mb-6">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Number of Fingers</label>
-                <select id="gesture-fingers" class="form-select">
-                    <option value="3">3 fingers</option>
-                    <option value="4">4 fingers</option>
+                <label class="block text-zinc-400 text-sm mb-1">Fingers</label>
+                <select id="gesture-fingers" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                    <option value="3">3 Fingers</option>
+                    <option value="4">4 Fingers</option>
                     <option value="5">5 fingers</option>
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Direction</label>
-                <select id="gesture-direction" class="form-select">
+                <label class="block text-zinc-400 text-sm mb-1">Direction</label>
+                <select id="gesture-direction" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
                     <option value="swipe">swipe (any swipe)</option>
                     <option value="horizontal">horizontal</option>
                     <option value="vertical">vertical</option>
@@ -1970,8 +2117,8 @@ function showAddGestureModal() {
                 </select>
             </div>
             <div class="mb-4">
-                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Modifier (optional)</label>
-                <select id="gesture-mod" class="form-select">
+                <label class="block text-zinc-400 text-sm mb-1">Modifier (Optional)</label>
+                <select id="gesture-mod" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
                     <option value="">None</option>
                     <option value="SUPER">SUPER</option>
                     <option value="ALT">ALT</option>
@@ -1988,13 +2135,13 @@ function showAddGestureModal() {
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-400 mb-1.5">Action</label>
-                <select id="gesture-action" class="form-select" onchange="toggleGestureDispatcher()">
+                <select id="gesture-action" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="toggleGestureDispatcher()">
                     ${getGestureActionOptions()}
                 </select>
             </div>
             <div class="mb-4" id="gesture-dispatcher-group" style="display: none;">
-                <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher</label>
-                <select id="gesture-dispatcher" class="form-select" onchange="updateGestureParamHint()">
+                <label class="block text-zinc-400 text-sm mb-1">Dispatcher</label>
+                <select id="gesture-dispatcher" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="updateGestureParamHint()">
                     ${getDispatcherOptions()}
                 </select>
                 <small id="gesture-param-hint" class="form-hint">Parameter: command (e.g., kitty, firefox)</small>
@@ -2064,57 +2211,51 @@ function showEditGestureModal(fingers, direction, gestureAction, params, raw, di
                     <button class="text-zinc-500 hover:text-white text-2xl leading-none" onclick="closeModal()">×</button>
                 </div>
                 <div class="mb-6">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Number of Fingers</label>
-                        <select id="gesture-fingers" class="form-select">
-                            <option value="3" ${fingers == '3' ? 'selected' : ''}>3 fingers</option>
-                            <option value="4" ${fingers == '4' ? 'selected' : ''}>4 fingers</option>
-                            <option value="5" ${fingers == '5' ? 'selected' : ''}>5 fingers</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Direction</label>
-                        <select id="gesture-direction" class="form-select">
-                            <option value="swipe" ${direction === 'swipe' ? 'selected' : ''}>swipe (any swipe)</option>
-                            <option value="horizontal" ${direction === 'horizontal' ? 'selected' : ''}>horizontal</option>
-                            <option value="vertical" ${direction === 'vertical' ? 'selected' : ''}>vertical</option>
-                            <option value="left" ${direction === 'left' ? 'selected' : ''}>left</option>
-                            <option value="right" ${direction === 'right' ? 'selected' : ''}>right</option>
-                            <option value="up" ${direction === 'up' ? 'selected' : ''}>up</option>
-                            <option value="down" ${direction === 'down' ? 'selected' : ''}>down</option>
-                            <option value="pinch" ${direction === 'pinch' ? 'selected' : ''}>pinch (any pinch)</option>
-                            <option value="pinchin" ${direction === 'pinchin' ? 'selected' : ''}>pinchin</option>
-                            <option value="pinchout" ${direction === 'pinchout' ? 'selected' : ''}>pinchout</option>
-                        </select>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Modifier (optional)</label>
-                        <select id="gesture-mod" class="form-select">
-                            <option value="" ${!mod ? 'selected' : ''}>None</option>
-                            <option value="SUPER" ${mod === 'SUPER' ? 'selected' : ''}>SUPER</option>
-                            <option value="ALT" ${mod === 'ALT' ? 'selected' : ''}>ALT</option>
-                            <option value="CTRL" ${mod === 'CTRL' ? 'selected' : ''}>CTRL</option>
-                            <option value="SHIFT" ${mod === 'SHIFT' ? 'selected' : ''}>SHIFT</option>
-                            <option value="SUPER_ALT" ${mod === 'SUPER_ALT' ? 'selected' : ''}>SUPER + ALT</option>
-                            <option value="SUPER_CTRL" ${mod === 'SUPER_CTRL' ? 'selected' : ''}>SUPER + CTRL</option>
-                            <option value="SUPER_SHIFT" ${mod === 'SUPER_SHIFT' ? 'selected' : ''}>SUPER + SHIFT</option>
-                        </select>
-                    </div>
+                    <div class="w-1/2 pr-2">
+                    <label class="block text-zinc-400 text-xs mb-1">Fingers</label>
+                    <select id="gesture-fingers" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                        <option value="3" ${data.fingers === '3' ? 'selected' : ''}>3 fingers</option>
+                        <option value="4" ${data.fingers === '4' ? 'selected' : ''}>4 fingers</option>
+                        <option value="5" ${data.fingers === '5' ? 'selected' : ''}>5 fingers</option>
+                    </select>
+                </div>
+                <div class="w-1/2 pl-2">
+                    <label class="block text-zinc-400 text-xs mb-1">Direction</label>
+                    <select id="gesture-direction" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                        <option value="swipe" ${data.direction === 'swipe' ? 'selected' : ''}>swipe</option>
+                        <option value="u" ${data.direction === 'u' ? 'selected' : ''}>Up (u)</option>
+                        <option value="d" ${data.direction === 'd' ? 'selected' : ''}>Down (d)</option>
+                        <option value="l" ${data.direction === 'l' ? 'selected' : ''}>Left (l)</option>
+                        <option value="r" ${data.direction === 'r' ? 'selected' : ''}>Right (r)</option>
+                    </select>
+                </div>
+                    <div class="w-full mt-3">
+                    <label class="block text-zinc-400 text-xs mb-1">Modifier (Optional)</label>
+                    <select id="gesture-mod" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
+                        <option value="" ${data.mod === '' ? 'selected' : ''}>None</option>
+                        <option value="SUPER" ${data.mod === 'SUPER' ? 'selected' : ''}>SUPER</option>
+                        <option value="ALT" ${data.mod === 'ALT' ? 'selected' : ''}>ALT</option>
+                        <option value="CTRL" ${data.mod === 'CTRL' ? 'selected' : ''}>CTRL</option>
+                        <option value="SHIFT" ${data.mod === 'SHIFT' ? 'selected' : ''}>SHIFT</option>
+                    </select>
+                </div>
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-zinc-400 mb-1.5">Scale (optional, e.g., 1.5)</label>
                         <input type="text" id="gesture-scale" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${scale}" placeholder="Leave empty for default">
                     </div>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Action</label>
-                        <select id="gesture-action" class="form-select" onchange="toggleGestureDispatcher()">
-                            ${getGestureActionOptions(gestureAction)}
-                        </select>
-                    </div>
-                    <div class="mb-4" id="gesture-dispatcher-group" style="display: ${isDispatcher ? 'block' : 'none'};">
-                        <label class="block text-sm font-medium text-zinc-400 mb-1.5">Dispatcher</label>
-                        <select id="gesture-dispatcher" class="form-select" onchange="updateGestureParamHint()">
-                            ${getDispatcherOptionsWithSelected(dispatcher)}
-                        </select>
+                    <div class="w-full mt-3">
+                    <label class="block text-zinc-400 text-xs mb-1">Action Type</label>
+                    <select id="gesture-action" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="toggleGestureDispatcher()">
+                        <option value="dispatch" ${isDispatch ? 'selected' : ''}>Dispatch</option>
+                        <option value="exec" ${isExec ? 'selected' : ''}>Exec</option>
+                    </select>
+                </div>
+                
+                <div class="w-full mt-3" id="gesture-dispatcher-group">
+                    <label class="block text-zinc-400 text-xs mb-1">Dispatcher</label>
+                    <select id="gesture-dispatcher" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" onchange="updateGestureParamHint()">
+                        ${getDispatcherOptions(currentDispatcher)}
+                    </select>
                         <small id="gesture-param-hint" class="form-hint">Parameter: ${DISPATCHERS[dispatcher]?.param || 'parameters'}</small>
                     </div>
                     <div class="mb-4" id="gesture-params-group">
@@ -2559,7 +2700,7 @@ async function deletePreset(presetId) {
 
         if (!response.ok) throw new Error('Delete failed');
 
-        // Update local state
+         
         presets = presets.filter(p => p.id !== presetId);
         if (activePreset === presetId) {
             activePreset = null;

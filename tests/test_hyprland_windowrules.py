@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 def test_update_windowrule(client: TestClient):
-    # Find existing rule
+                        
     response = client.get("/hyprland/windowrules")
     rules = response.json()["windowrules"]
     rule = next(r for r in rules if r["type"] == "windowrule" and "kitty" in r["match"])
@@ -17,7 +17,7 @@ def test_update_windowrule(client: TestClient):
     response = client.post("/hyprland/windowrules", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/windowrules")
     rules = response.json()["windowrules"]
 

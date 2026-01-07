@@ -20,7 +20,7 @@ def test_add_env(client: TestClient):
     response = client.post("/hyprland/env", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/env")
     envs = response.json()["env"]
     assert any(e["name"] == "MOZ_ENABLE_WAYLAND" and e["value"] == "1" for e in envs)
@@ -35,7 +35,7 @@ def test_update_env(client: TestClient):
     response = client.post("/hyprland/env", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/env")
     envs = response.json()["env"]
     assert any(e["name"] == "XCURSOR_SIZE" and e["value"] == "32" for e in envs)
@@ -48,7 +48,7 @@ def test_delete_env(client: TestClient):
     response = client.post("/hyprland/env", json=update)
     assert response.status_code == 200
 
-    # Verify
+            
     response = client.get("/hyprland/env")
     envs = response.json()["env"]
     assert not any(e["name"] == "QT_QPA_PLATFORMTHEME" for e in envs)

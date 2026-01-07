@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 def test_reload_hyprland(client: TestClient):
-    # This should succeed because we have a fake hyprctl in path
+                                                                
     response = client.post("/hyprland/reload")
     assert response.status_code == 200
     data = response.json()
@@ -9,7 +9,7 @@ def test_reload_hyprland(client: TestClient):
     assert "ok" in data["stdout"]
 
 def test_get_windows(client: TestClient):
-    # This should return our mocked windows from fake hyprctl
+                                                             
     response = client.get("/hyprland/windows")
     assert response.status_code == 200
     data = response.json()

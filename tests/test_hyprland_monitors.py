@@ -18,7 +18,7 @@ def test_get_monitors(client: TestClient):
     assert m2["resolution"] == "2560x1440@144"
 
 def test_update_monitor(client: TestClient):
-    # Update existing monitor
+                             
     update = {
         "name": "HDMI-A-1",
         "resolution": "1920x1080@144",
@@ -29,14 +29,14 @@ def test_update_monitor(client: TestClient):
     assert response.status_code == 200
     assert response.json()["success"] is True
 
-    # Verify update
+                   
     response = client.get("/hyprland/monitors")
     monitors = response.json()["monitors"]
     m1 = next(m for m in monitors if m["name"] == "HDMI-A-1")
     assert m1["resolution"] == "1920x1080@144"
 
 def test_add_monitor(client: TestClient):
-    # Add new monitor
+                     
     update = {
         "name": "DP-2",
         "resolution": "3840x2160@60",
@@ -46,7 +46,7 @@ def test_add_monitor(client: TestClient):
     response = client.post("/hyprland/monitors", json=update)
     assert response.status_code == 200
 
-    # Verify add
+                
     response = client.get("/hyprland/monitors")
     monitors = response.json()["monitors"]
     assert len(monitors) == 3

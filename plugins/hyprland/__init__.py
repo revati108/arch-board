@@ -14,10 +14,11 @@ from plugins.hyprland.helpers.hyprland_schema import get_schema
 from utils.config import get_context
 from utils.plugins_frontend import register_navigation, NavItem, NavGroup, register_search, SearchItem
 from xtracto import Parser
+from plugins.hyprland.helpers.migration import HyprlandVersion, ConfigMigrator
 
 hyprland_router = APIRouter(prefix="/hyprland", tags=["hyprland"])
 
-# Register navigation
+                     
 register_navigation(
     items=[NavItem(id="hyprland", title="Hyprland", url="/hyprland", icon="hyprland", group="config", order=10)],
     groups=[NavGroup(id="config", title="Config", icon="config", order=10)]
@@ -25,12 +26,12 @@ register_navigation(
 
 from plugins.hyprland.helpers.hyprland_schema import HYPRLAND_SCHEMA
 
-# Generate search items from schema
+                                   
 search_items = []
 
-# 1. Schema Items (Granular options)
+                                    
 for tab in HYPRLAND_SCHEMA:
-    # Add the tab itself
+                        
     search_items.append(SearchItem(
         id=f"hyprland-tab-{tab.id}",
         title=f"{tab.title} Settings",
@@ -40,16 +41,16 @@ for tab in HYPRLAND_SCHEMA:
         keywords=[tab.title.lower(), "settings", "config"]
     ))
 
-    # Add options
+                 
     for section in tab.sections:
         for option in section.options:
-            # Format title: "general:border_size" -> "Border Size"
+                                                                  
             base_title = option.name.replace("_", " ").title()
 
-            # Use section title for context to avoid duplicates (e.g., "Natural Scroll" in Mouse vs Touchpad)
-            # If section name is like "input:touchpad", title is "Touchpad"
-            # If section name is just "general", title is "General Settings" -> maybe redundant if we just say "Border Size"?
-            # A good heuristic: if the section title is specific (not "General Settings"), prepend it.
+                                                                                                             
+                                                                           
+                                                                                                                             
+                                                                                                      
 
             start_context = ""
             if section.title and "General" not in section.title and "Miscellaneous" not in section.title:
@@ -60,14 +61,14 @@ for tab in HYPRLAND_SCHEMA:
             search_items.append(SearchItem(
                 id=f"hyprland-opt-{section.name}-{option.name}",
                 title=formatted_title,
-                url=f"/hyprland?tab={tab.id}",  # Highlight param added via wrapper or selector
-                category=f"Hyprland: {tab.title}",  # Explicit namespace
-                description=option.description,  # Use schema description!
+                url=f"/hyprland?tab={tab.id}",                                                 
+                category=f"Hyprland: {tab.title}",                      
+                description=option.description,                           
                 keywords=option.name.split("_") + [tab.title.lower(), section.title.lower()],
-                selector=f'[data-path="{section.name}:{option.name}"]'  # Deep link selector
+                selector=f'[data-path="{section.name}:{option.name}"]'                      
             ))
 
-# 2. Special Tabs (Manual)
+                          
 special_tabs = [
     ("monitors", "Monitors", "Configure displays, resolution, positioning"),
     ("binds", "Keybinds", "Manage keyboard shortcuts and hotkeys"),
@@ -87,14 +88,14 @@ for tab_id, title, desc in special_tabs:
         keywords=[title.lower(), "settings", "config"]
     ))
 
-# Register all items
+                    
 register_search(search_items)
 
-# Default config path
+                     
 CONFIG_PATH = os.path.expanduser("~/.config/hypr/hyprland.conf")
 
 
-# Page route
+            
 @hyprland_router.get("", response_class=HTMLResponse)
 async def hyprland_page():
     parser = Parser(path="hyprland.pypx")
@@ -116,13 +117,13 @@ def to_hypr_value(value: Any) -> str:
 
 class ConfigUpdate(BaseModel):
     """Request model for config updates."""
-    path: str  # e.g., "general:gaps_in" or "decoration:blur:enabled"
+    path: str                                                        
     value: Any
 
 
 class BulkConfigUpdate(BaseModel):
     """Request model for bulk config updates."""
-    updates: Dict[str, Any]  # path -> value
+    updates: Dict[str, Any]                 
 
 
 @hyprland_router.get("/schema")
@@ -141,10 +142,10 @@ async def get_config():
         hl = HyprLang(CONFIG_PATH)
         conf = hl.load()
 
-        # Build flat config dict from parsed config
+                                                   
         config_values = {}
 
-        # Get all values using the schema paths
+                                               
         schema = get_schema()
         for tab in schema:
             for section in tab["sections"]:
@@ -152,14 +153,14 @@ async def get_config():
                 for option in section["options"]:
                     option_name = option["name"]
 
-                    # Try to get value from config
+                                                  
                     full_path = f"{section_name}:{option_name}"
                     value = conf.get(full_path)
 
                     if value is not None:
                         config_values[full_path] = value
                     else:
-                        # Use default
+                                     
                         config_values[full_path] = option["default"]
 
         return {
@@ -180,13 +181,13 @@ async def update_config(update: ConfigUpdate):
         hl = HyprLang(CONFIG_PATH)
         conf = hl.load()
 
-        # Set the value
+                       
         success = conf.set(update.path, to_hypr_value(update.value))
 
         if not success:
             raise HTTPException(status_code=400, detail=f"Failed to set {update.path}")
 
-        # Save back to file
+                           
         hl.save()
 
         return {"success": True, "path": update.path, "value": update.value}
@@ -209,7 +210,7 @@ async def bulk_update_config(update: BulkConfigUpdate):
             success = conf.set(path, to_hypr_value(value))
             results[path] = {"success": success, "value": value}
 
-        # Save back to file
+                           
         hl.save()
 
         return {"success": True, "results": results}
@@ -232,9 +233,9 @@ async def reload_hyprland():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# MONITORS
-# =============================================================================
+                                                                               
+          
+                                                                               
 
 @hyprland_router.get("/monitors")
 async def get_monitors():
@@ -249,7 +250,7 @@ async def get_monitors():
         monitors = []
         for line in conf.lines:
             if line.key == "monitor":
-                # Parse: name, resolution, position, scale, [extras...]
+                                                                       
                 parts = [p.strip() for p in line.value.raw.split(",")]
                 if len(parts) >= 4:
                     monitors.append({
@@ -291,12 +292,12 @@ async def update_monitor(monitor: MonitorUpdate):
         hl = HyprLang(CONFIG_PATH)
         conf = hl.load()
 
-        # Build the monitor line value
+                                      
         value = f"{monitor.name}, {monitor.resolution}, {monitor.position}, {monitor.scale}"
         if monitor.extras:
             value += ", " + ", ".join(monitor.extras)
 
-        # Find existing monitor line with same name and update, or add new
+                                                                          
         found = False
         for line in conf.lines:
             if line.key == "monitor" and line.value.raw.startswith(monitor.name + ","):
@@ -314,9 +315,9 @@ async def update_monitor(monitor: MonitorUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# KEYBINDS
-# =============================================================================
+                                                                               
+          
+                                                                               
 
 @hyprland_router.get("/binds")
 async def get_binds():
@@ -334,7 +335,7 @@ async def get_binds():
 
         for line in conf.lines:
             if line.key in bind_types or line.key.startswith("bind"):
-                # Parse: MODS, key, dispatcher, params
+                                                      
                 parts = [p.strip() for p in line.value.raw.split(",", 3)]
                 bind_info = {
                     "type": line.key,
@@ -353,7 +354,7 @@ async def get_binds():
 
 class BindUpdate(BaseModel):
     """Keybind update model."""
-    action: str = "add"  # "add", "update", "delete"
+    action: str = "add"                             
     type: str = "bind"
     mods: str
     key: str
@@ -362,10 +363,10 @@ class BindUpdate(BaseModel):
     old_raw: Optional[str] = None
 
 
-# POST endpoint moved to consolidated CRUD section below
-# =============================================================================
-# WINDOW RULES
-# =============================================================================
+                                                        
+                                                                               
+              
+                                                                               
 
 @hyprland_router.get("/windowrules")
 async def get_windowrules():
@@ -380,7 +381,7 @@ async def get_windowrules():
         rules = []
         for line in conf.lines:
             if line.key == "windowrule" or line.key == "windowrulev2":
-                # Parse: effect, match
+                                      
                 parts = [p.strip() for p in line.value.raw.split(",", 1)]
                 rules.append({
                     "type": line.key,
@@ -394,9 +395,9 @@ async def get_windowrules():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# LAYER RULES
-# =============================================================================
+                                                                               
+             
+                                                                               
 
 @hyprland_router.get("/layerrules")
 async def get_layerrules():
@@ -411,7 +412,7 @@ async def get_layerrules():
         rules = []
         for line in conf.lines:
             if line.key == "layerrule":
-                # Parse: effect, namespace (legacy) or effect on, match:namespace ns (new)
+                                                                                          
                 raw = line.value.raw
                 parts = [p.strip() for p in raw.split(",", 1)]
                 
@@ -421,12 +422,12 @@ async def get_layerrules():
                 if len(parts) > 1:
                     match_part = parts[1]
                     if "match:namespace" in match_part.lower():
-                        # New syntax: extract namespace from match:namespace value
+                                                                                  
                         idx = match_part.lower().find("match:namespace")
                         rest = match_part[idx + 15:].strip()
                         namespace = rest.split(",")[0].strip()
                     else:
-                        # Legacy syntax
+                                       
                         namespace = match_part.strip()
                 
                 rules.append({
@@ -442,7 +443,7 @@ async def get_layerrules():
 
 class LayerRuleUpdate(BaseModel):
     """Request model for layer rule updates."""
-    action: str  # "add", "update", "delete"
+    action: str                             
     effect: str
     namespace: str
     old_raw: Optional[str] = None
@@ -458,30 +459,41 @@ async def update_layer_rule(update: LayerRuleUpdate):
         with open(CONFIG_PATH, 'r') as f:
             lines = f.readlines()
 
-        # Check if we should use new syntax (check migration status)
-        hl = HyprLang(CONFIG_PATH)
-        conf = hl.load()
-        
-        # Detect syntax style from existing rules
+                                           
+        version = HyprlandVersion.detect()
         use_new_syntax = False
-        for line in conf.lines:
-            if line.key == "layerrule" and "match:" in line.value.raw:
-                use_new_syntax = True
-                break
         
-        # Build the new line based on syntax
+        if version:
+            use_new_syntax = version.supports_new_window_rules()
+        else:
+                            
+            hl = HyprLang(CONFIG_PATH)
+            conf = hl.load()
+            for line in conf.lines:
+                if (line.key == "layerrule" and "match:" in line.value.raw):
+                    use_new_syntax = True
+                    break
+        
+                                            
         if use_new_syntax:
-            # New syntax: effect on, match:namespace namespace
+                                                              
             effect_part = update.effect
             if " " not in effect_part:
                 effect_part = f"{effect_part} on"
+                
+                  
+            if effect_part.startswith("ignorealpha"):
+                effect_part = effect_part.replace("ignorealpha", "ignore_alpha", 1)
+            if effect_part == "stayfocused":         
+                 effect_part = "stay_focused on"
+
             new_line = f"layerrule = {effect_part}, match:namespace {update.namespace}\n"
         else:
-            # Legacy syntax: effect, namespace
+                                              
             new_line = f"layerrule = {update.effect}, {update.namespace}\n"
 
         if update.action == "add":
-            # Find where to insert (after other layerrule lines or at appropriate spot)
+                                                                                       
             insert_idx = len(lines)
             for i, line in enumerate(lines):
                 if line.strip().startswith("layerrule"):
@@ -507,9 +519,9 @@ async def update_layer_rule(update: LayerRuleUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# EXEC COMMANDS
-# =============================================================================
+                                                                               
+               
+                                                                               
 
 @hyprland_router.get("/exec")
 async def get_exec_commands():
@@ -534,44 +546,44 @@ async def get_exec_commands():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# ENVIRONMENT VARIABLES
-# =============================================================================
+                                                                               
+                       
+                                                                               
 
 class EnvUpdate(BaseModel):
     """Request model for env var updates."""
-    action: str  # "add", "update", "delete"
+    action: str                             
     name: str
     value: Optional[str] = ""
-    old_name: Optional[str] = None  # For updates
+    old_name: Optional[str] = None               
 
 
 class ExecUpdate(BaseModel):
     """Request model for exec command updates."""
-    action: str  # "add", "update", "delete"
-    type: str  # "exec" or "exec-once"
+    action: str                             
+    type: str                         
     command: str
-    old_command: Optional[str] = None  # For updates
+    old_command: Optional[str] = None               
 
 
 class WindowRuleUpdate(BaseModel):
     """Request model for window rule updates."""
-    action: str  # "add", "update", "delete"
-    type: str  # "windowrule" or "windowrulev2"
+    action: str                             
+    type: str                                  
     effect: str
     match: str
-    old_raw: Optional[str] = None  # For updates/deletes
+    old_raw: Optional[str] = None                       
 
 
 class BindUpdate(BaseModel):
     """Request model for keybind updates."""
-    action: str  # "add", "update", "delete"
-    type: str  # "bind", "binde", etc.
+    action: str                             
+    type: str                         
     mods: str
     key: str
     dispatcher: str
     params: Optional[str] = ""
-    old_raw: Optional[str] = None  # For updates/deletes
+    old_raw: Optional[str] = None                       
 
 
 @hyprland_router.get("/env")
@@ -587,7 +599,7 @@ async def get_env_vars():
         env_vars = []
         for i, line in enumerate(conf.lines):
             if line.key == "env":
-                # Parse: NAME,VALUE
+                                   
                 parts = line.value.raw.split(",", 1)
                 if len(parts) >= 2:
                     env_vars.append({
@@ -622,7 +634,7 @@ async def update_env_var(update: EnvUpdate):
         new_line = f"env = {update.name},{update.value}\n"
 
         if update.action == "add":
-            # Find where to insert (after other env lines or at top)
+                                                                    
             insert_idx = 0
             for i, line in enumerate(lines):
                 if line.strip().startswith("env ="):
@@ -661,7 +673,7 @@ async def update_exec_command(update: ExecUpdate):
         new_line = f"{update.type} = {update.command}\n"
 
         if update.action == "add":
-            # Find where to insert
+                                  
             insert_idx = len(lines)
             for i, line in enumerate(lines):
                 if line.strip().startswith("exec"):
@@ -697,10 +709,63 @@ async def update_window_rule(update: WindowRuleUpdate):
         with open(CONFIG_PATH, 'r') as f:
             lines = f.readlines()
 
-        new_line = f"{update.type} = {update.effect},{update.match}\n"
+                                           
+        version = HyprlandVersion.detect()
+        use_new_syntax = False
+        
+        if version:
+            use_new_syntax = version.supports_new_window_rules()
+        else:
+                            
+            hl = HyprLang(CONFIG_PATH)
+            conf = hl.load()
+            for line in conf.lines:
+                if (line.key == "windowrule" and "match:" in line.value.raw):
+                    use_new_syntax = True
+                    break
+        
+        if use_new_syntax:
+                                   
+            rule_type = "windowrule"
+            
+                           
+            effect = update.effect
+            if " " not in effect:
+                effect = f"{effect} on"
+            
+                  
+            if effect.startswith("ignorealpha"):
+                effect = effect.replace("ignorealpha", "ignore_alpha", 1)
+            
+                          
+            match_parts = [p.strip() for p in update.match.split(",")]
+            new_matches = []
+            KNOWN_KEYS = {
+                'class', 'title', 'initialclass', 'initialtitle',
+                'floating', 'xwayland', 'pinned', 'workspace',
+                'fullscreen', 'monitor', 'address', 'pid', 'uid', 'group'
+            }
+            
+            for part in match_parts:
+                part_lower = part.lower()
+                if part_lower.startswith("match:"):
+                    new_matches.append(part)
+                elif ":" in part:
+                    key, val = part.split(":", 1)
+                    if key.lower() in KNOWN_KEYS:
+                        new_matches.append(f"match:{key.lower()} {val}")
+                    else:
+                        new_matches.append(f"match:class {part}")
+                else:
+                    new_matches.append(f"match:class {part}")
+            
+            match_str = ", ".join(new_matches)
+            new_line = f"windowrule = {effect}, {match_str}\n"
+        else:
+            new_line = f"{update.type} = {update.effect},{update.match}\n"
 
         if update.action == "add":
-            # Find where to insert
+                                  
             insert_idx = len(lines)
             for i, line in enumerate(lines):
                 if line.strip().startswith("windowrule"):
@@ -739,7 +804,7 @@ async def update_bind(update: BindUpdate):
         if update.action == "add":
             params = f",{update.params}" if update.params else ""
             new_line = f"{update.type} = {update.mods},{update.key},{update.dispatcher}{params}\n"
-            # Find where to insert
+                                  
             insert_idx = len(lines)
             for i, line in enumerate(lines):
                 if line.strip().startswith("bind"):
@@ -801,20 +866,20 @@ async def get_open_windows():
         return {"windows": [], "error": str(e)}
 
 
-# =============================================================================
-# GESTURES
-# =============================================================================
+                                                                               
+          
+                                                                               
 
 class GestureUpdate(BaseModel):
     """Request model for gesture updates."""
-    action: str  # "add", "update", "delete"
+    action: str                             
     fingers: int
-    direction: str  # "horizontal", "vertical", etc.
-    gesture_action: str  # "workspace", "move", "resize", "special", "close", "fullscreen", "float", "dispatcher", "unset"
-    dispatcher: Optional[str] = ""  # Dispatcher name when gesture_action is "dispatcher"
+    direction: str                                  
+    gesture_action: str                                                                                                   
+    dispatcher: Optional[str] = ""                                                       
     params: Optional[str] = ""
-    mod: Optional[str] = ""  # Modifier key (e.g., "SUPER", "ALT")
-    scale: Optional[str] = ""  # Animation speed scale (e.g., "1.5")
+    mod: Optional[str] = ""                                       
+    scale: Optional[str] = ""                                       
     old_raw: Optional[str] = None
 
 
@@ -831,7 +896,7 @@ async def get_gestures():
         gestures = []
         for line in conf.lines:
             if line.key == "gesture":
-                # Parse: fingers, direction, [mod: X,] [scale: X,] action, [params]
+                                                                                   
                 raw = line.value.raw
                 parts = [p.strip() for p in raw.split(",")]
 
@@ -839,7 +904,7 @@ async def get_gestures():
                     fingers = parts[0]
                     direction = parts[1]
 
-                    # Parse optional mod: and scale: options
+                                                            
                     mod = ""
                     scale = ""
                     idx = 2
@@ -860,7 +925,7 @@ async def get_gestures():
                         dispatcher = ""
                         params = ""
 
-                        # Check if action is "dispatcher"
+                                                         
                         if action.lower() == "dispatcher" and idx + 1 < len(parts):
                             dispatcher = parts[idx + 1]
                             params = ",".join(parts[idx + 2:]) if idx + 2 < len(parts) else ""
@@ -894,21 +959,21 @@ async def update_gesture(update: GestureUpdate):
         with open(CONFIG_PATH, 'r') as f:
             lines = f.readlines()
 
-        # Build the gesture line based on Hyprland format:
-        # gesture = fingers, direction, [mod: X,] [scale: X,] action[, args]
+                                                          
+                                                                            
         parts = [str(update.fingers), update.direction]
 
-        # Add optional mod
+                          
         if update.mod:
             parts.append(f"mod: {update.mod}")
 
-        # Add optional scale
+                            
         if update.scale:
             parts.append(f"scale: {update.scale}")
 
-        # Add action
+                    
         if update.gesture_action == "dispatcher":
-            # Format: dispatcher, dispatcher_name, params
+                                                         
             parts.append("dispatcher")
             parts.append(update.dispatcher)
             if update.params:
@@ -921,7 +986,7 @@ async def update_gesture(update: GestureUpdate):
         new_line = f"gesture = {', '.join(parts)}\n"
 
         if update.action == "add":
-            # Find where to insert
+                                  
             insert_idx = len(lines)
             for i, line in enumerate(lines):
                 if line.strip().startswith("gesture"):
@@ -947,9 +1012,9 @@ async def update_gesture(update: GestureUpdate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# =============================================================================
-# CONFIG MIGRATION (v0.53+ new window rule syntax)
-# =============================================================================
+                                                                               
+                                                  
+                                                                               
 
 from plugins.hyprland.helpers.migration import HyprlandVersion, ConfigMigrator, MigrationResult
 from pathlib import Path
@@ -983,7 +1048,7 @@ async def get_migration_status():
         needs_migration = ConfigMigrator.needs_migration(conf)
         summary = ConfigMigrator.get_migration_summary(conf) if needs_migration else ""
 
-        # Get version info
+                          
         version = HyprlandVersion.detect()
         version_info = None
         if version:
@@ -1019,14 +1084,14 @@ async def migrate_config():
                 "message": "Config is already using new syntax"
             }
 
-        # Create backup
+                       
         config_path = Path(CONFIG_PATH)
         backup_path = ConfigMigrator.backup_config(config_path)
 
-        # Perform migration
+                           
         result = ConfigMigrator.migrate(conf)
 
-        # Save migrated config
+                              
         hl.save()
 
         return {

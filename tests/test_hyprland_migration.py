@@ -119,8 +119,8 @@ class TestConfigMigrator:
         conf = self._make_conf([
             ("windowrule", "float on, match:class ^(kitty)$")
         ])
-        # Still needs migration because of layerrule without match:
-        # Let's test only windowrule with match:
+                                                                   
+                                                
         conf2 = HyprConf(
             lines=[
                 HyprLine(key="windowrule", value=HyprValue(raw="float on, match:class ^(kitty)$", parts=[]))
@@ -168,7 +168,7 @@ class TestConfigMigrator:
         result = ConfigMigrator.migrate(conf)
         
         assert result.migrated_rules == 1
-        # Should preserve the comma inside parentheses
+                                                      
         assert "match:title ^(foo, bar)$" in conf.lines[0].value.raw
         assert "float on" in conf.lines[0].value.raw
     
