@@ -833,8 +833,8 @@ class HyprlockEditor {
         if (key.includes('color')) {
             input = `
                 <div class="flex gap-2">
+                    <input type="color" class="w-8 h-6 bg-transparent border-0 cursor-pointer rounded" value="${this.rgbToHex(val)}" onchange="hyprlockEditor.handleColorChange('${widget.id}', '${key}', this.value)">
                     <input type="text" class="${inputClass} flex-1" value="${val}" onchange="hyprlockEditor.updateWidget('${widget.id}', '${key}', this.value)">
-                    <input type="color" class="w-8 h-6 bg-transparent border-0 cursor-pointer rounded" value="${this.rgbToHex(val)}" onchange="hyprlockEditor.updateWidget('${widget.id}', '${key}', this.value)">
                 </div>`;
         }
         // Path fields with image picker
@@ -939,11 +939,17 @@ class HyprlockEditor {
     }
 
     rgbToHex(str) {
-        // Helper to convert rgba string to hex for color picker input
-        if (!str) return '#000000';
-        if (str.startsWith('#')) return str;
-        // simplistic parser
-        return '#ffffff';
+        return ColorUtils.toHex(str);
+    }
+
+    handleColorChange(widgetId, key, hexValue) {
+        const widget = this.widgets.find(w => w.id === widgetId);
+        if (!widget) return;
+
+        const originalValue = widget.data[key];
+        const newValue = ColorUtils.formatUpdate(originalValue, hexValue);
+
+        this.updateWidget(widgetId, key, newValue);
     }
 
     // =========================================================================

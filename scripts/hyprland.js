@@ -658,7 +658,7 @@ function renderSection(section) {
 }
 
 function renderOption(sectionName, option) {
-    const path = `${sectionName}:${option.name} `;
+    const path = `${sectionName}:${option.name}`;
     const configValue = config[path];
     const value = configValue !== undefined ? configValue : option.default;
     const hasChange = path in pendingChanges;
@@ -747,7 +747,6 @@ function renderNumberInput(path, option, value) {
 }
 
 function renderColorInput(path, value) {
-    // Convert hyprland color format to hex
     const hexColor = hyprColorToHex(value);
     return `
         <div class="flex items-center gap-2">
@@ -828,13 +827,17 @@ function updateSlider(path, value, container) {
 }
 
 function updateColor(path, hexValue) {
-    // Convert hex to hyprland format
-    const hyprColor = hexToHyprColor(hexValue);
-    updateValue(path, hyprColor);
+    // Get current value to preserve format
+    const currentValue = config[path];
+
+    // Update using global util to preserve format
+    const newColorValue = ColorUtils.formatUpdate(currentValue, hexValue);
+
+    updateValue(path, newColorValue);
 
     // Update text input
     const option = document.querySelector(`[data-path="${path}"] .color-text`);
-    if (option) option.value = hyprColor;
+    if (option) option.value = newColorValue;
 }
 
 function updateVec2(path, x, y) {
@@ -932,67 +935,9 @@ async function reloadHyprland() {
 // =============================================================================
 
 function hyprColorToHex(color) {
-    // Handle Hyprland formats:
-    // - 0xAARRGGBB or 0xRRGGBB
-    // - rgba(RRGGBBAA) - hex inside rgba!
-    // - Gradients: rgba(33ccffee) rgba(8f00ffee) 45deg
-    // - #RRGGBB
-
-    if (!color || typeof color !== 'string') return '#ffffff';
-
-    const colorStr = String(color).trim();
-    if (!colorStr) return '#ffffff';
-
-    // For gradients, just take the first color
-    // e.g., "rgba(33ccffee) rgba(8f00ffee) 45deg" -> extract first rgba
-
-    // 0xAARRGGBB format
-    if (colorStr.startsWith('0x')) {
-        const hex = colorStr.slice(2);
-        if (hex.length === 8) {
-            // AARRGGBB -> #RRGGBB (skip alpha)
-            return '#' + hex.slice(2);
-        }
-        return '#' + hex.padStart(6, '0');
-    }
-
-    // Already hex with #
-    if (colorStr.startsWith('#')) {
-        return colorStr.slice(0, 7); // Take just 6 chars after #
-    }
-
-    // Hyprland rgba(RRGGBBAA) format - hex inside parentheses, NOT decimal RGB!
-    const hyprRgbaMatch = colorStr.match(/rgba?\s*\(\s*([0-9a-fA-F]{6, 8})\s*\)/);
-    if (hyprRgbaMatch) {
-        const hex = hyprRgbaMatch[1];
-        // RRGGBBAA -> #RRGGBB (first 6 chars, skip alpha if present)
-        return '#' + hex.slice(0, 6);
-    }
-
-    // Standard CSS rgba(r,g,b,a) with decimal values
-    const cssRgbaMatch = colorStr.match(/rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
-    if (cssRgbaMatch) {
-        const r = Math.min(255, parseInt(cssRgbaMatch[1])).toString(16).padStart(2, '0');
-        const g = Math.min(255, parseInt(cssRgbaMatch[2])).toString(16).padStart(2, '0');
-        const b = Math.min(255, parseInt(cssRgbaMatch[3])).toString(16).padStart(2, '0');
-        return `#${r}${g}${b}`;
-    }
-
-    // Handle bare hex without prefix (e.g., "33ccff" or "33ccffee")
-    const bareHexMatch = colorStr.match(/^([0-9a-fA-F]{6, 8})/);
-    if (bareHexMatch) {
-        const hex = bareHexMatch[1];
-        return '#' + hex.slice(0, 6);
-    }
-
-    return '#ffffff';
+    return ColorUtils.toHex(color);
 }
-
-function hexToHyprColor(hex) {
-    // #RRGGBB -> 0xffRRGGBB
-    const rgb = hex.slice(1);
-    return `0xff${rgb}`;
-}
+// hexToHyprColor removed - use ColorUtils.formatUpdate instead
 
 // =============================================================================
 // TOAST NOTIFICATIONS

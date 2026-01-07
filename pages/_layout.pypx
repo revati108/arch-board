@@ -21,6 +21,10 @@ html
         script
             ;;src="scripts/local_settings.js?k={{ cache_key }}";;
         script
+            ;;src="scripts/renderer.js?k={{ cache_key }}";;
+        script
+            ;;src="scripts/utils.js?k={{ cache_key }}";;
+        script
             const prod = {{ production }};
             const plugin_enabled = {{ plugin_enabled }};
     body
@@ -46,7 +50,3 @@ html
             ;;src="scripts/main.js?k={{ cache_key }}";;
         script
             ;;src="scripts/api.js?k={{ cache_key }}";;
-        script
-            ;;src="scripts/renderer.js?k={{ cache_key }}";;
-        script
-            ;;src="scripts/utils.js?k={{ cache_key }}";;

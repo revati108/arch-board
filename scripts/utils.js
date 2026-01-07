@@ -240,3 +240,109 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.onclick = showGlobalSettingsModal;
     });
 });
+
+// =============================================================================
+// COLOR UTILITIES
+// =============================================================================
+
+const ColorUtils = {
+    // Converts various color formats to #RRGGBB for <input type="color">
+    toHex(color) {
+        if (!color || typeof color !== 'string') return '#ffffff';
+        const str = String(color).trim();
+        if (!str) return '#ffffff';
+
+        // 1. Handle Hex: #RRGGBB, #RGB, #RRGGBBAA
+        if (str.startsWith('#')) {
+            if (str.length === 4) { // #RGB -> #RRGGBB
+                return '#' + str[1] + str[1] + str[2] + str[2] + str[3] + str[3];
+            }
+            if (str.length === 9) { // #RRGGBBAA -> #RRGGBB (discard alpha for picker)
+                return str.substring(0, 7);
+            }
+            return str.substring(0, 7); // Ensure 7 chars
+        }
+
+        // 2. Handle Hyprland 0x format: 0xAARRGGBB or 0xRRGGBB
+        if (str.startsWith('0x')) {
+            // Remove 0x
+            let hex = str.substring(2);
+            if (hex.length === 8) { // AARRGGBB -> RRGGBB
+                return '#' + hex.substring(2);
+            }
+            return '#' + hex;
+        }
+
+        // 3. Handle rgba(r, g, b, a) or rgb(r, g, b)
+        const rgbMatch = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (rgbMatch) {
+            const r = parseInt(rgbMatch[1]);
+            const g = parseInt(rgbMatch[2]);
+            const b = parseInt(rgbMatch[3]);
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        // 4. Handle Hyprland rgba(hex) format: rgba(33ccffee)
+        // This is weird but Hyprland supports it. It's basically rgba(RRGGBBAA)
+        const rgbaHexMatch = str.match(/rgba\(([0-9a-fA-F]{8})\)/);
+        if (rgbaHexMatch) {
+            // Extract RRGGBB from RRGGBBAA (first 6 chars)
+            return '#' + rgbaHexMatch[1].substring(0, 6);
+        }
+
+        // Default
+        return '#ffffff';
+    },
+
+    // Updates a color value with a new hex color, preserving the original format
+    formatUpdate(originalValue, newHexValue) {
+        console.log("Got " + originalValue + " and " + newHexValue);
+        if (!originalValue) return newHexValue;
+        const str = String(originalValue).trim();
+
+        // Remove # from new value
+        const newHex = newHexValue.startsWith('#') ? newHexValue.substring(1) : newHexValue;
+        const r = parseInt(newHex.substring(0, 2), 16);
+        const g = parseInt(newHex.substring(2, 4), 16);
+        const b = parseInt(newHex.substring(4, 6), 16);
+
+        // 1. Preserve rgba(r, g, b, a)
+        if (str.startsWith('rgba(') && str.includes(',')) {
+            const alphaMatch = str.match(/rgba?\(.*,\s*([\d\.]+)\)/);
+            const alpha = alphaMatch ? alphaMatch[1] : '1.0';
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // 2. Preserve rgb(r, g, b)
+        if (str.startsWith('rgb(')) {
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // 3. Preserve 0x format (0xAARRGGBB)
+        if (str.startsWith('0x')) {
+            // Need the original alpha
+            // If original was 8 chars (AARRGGBB)
+            if (str.length === 10) { // 0x + 8 chars
+                const originalAlpha = str.substring(2, 4);
+                return `0x${originalAlpha}${newHex}`;
+            }
+            // If original was 6 chars (RRGGBB)
+            return `0x${newHex}`;
+        }
+
+        // 4. Preserve Hyprland rgba(hex) format: rgba(33ccffee)
+        // Check if starts with rgba( and does NOT contain comma (decimal format)
+        if (str.startsWith('rgba(') && !str.includes(',')) {
+            const hexMatch = str.match(/([0-9a-fA-F]{8})/);
+            if (hexMatch) {
+                const originalHex = hexMatch[1];
+                const originalAlpha = originalHex.substring(6, 8);
+                return `rgba(${newHex}${originalAlpha})`;
+            }
+        }
+        return newHexValue;
+    }
+};
+
+// Expose globally
+window.ColorUtils = ColorUtils;
