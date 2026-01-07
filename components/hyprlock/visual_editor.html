@@ -1,0 +1,170 @@
+<!-- Hyprlock Visual Editor Component -->
+<div id="hyprlock-editor" class="container mx-auto p-6 max-w-[1920px]">
+    <!-- Header with Save/Reload buttons -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2 bg-teal-500/10 rounded-lg">
+                <span class="text-2xl">🔒</span>
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold text-zinc-100">Hyprlock Configuration</h1>
+                <p class="text-zinc-400 text-sm">Visual Lock Screen Editor</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <!-- Preset Selector -->
+            <div id="preset-selector"
+                class="flex items-center gap-3 p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg">
+                <!-- Will be populated by renderPresetSelector() -->
+            </div>
+
+            <button onclick="hyprlockEditor.loadConfig()"
+                class="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors border border-zinc-700">
+                <span class="material-symbols-rounded text-sm">refresh</span> Reload
+            </button>
+            <button onclick="hyprlockEditor.saveConfig()"
+                class="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white font-medium rounded-lg transition-colors shadow-lg shadow-teal-900/20">
+                <span class="material-symbols-rounded text-sm">save</span> Save Config
+            </button>
+        </div>
+    </div>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com/css2">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Noto+Sans:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Ensure fonts are available */
+        .font-caveat {
+            font-family: 'Caveat', cursive;
+        }
+
+        .font-noto {
+            font-family: 'Noto Sans', sans-serif;
+        }
+    </style>
+
+    <!-- Main Editor Card -->
+    <div class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
+
+        <!-- Left Sidebar: Widget Toolbox -->
+        <div class="w-64 shrink-0 bg-zinc-900/50 border-r border-zinc-800 flex flex-col z-20 backdrop-blur-sm">
+            <!-- ... (toolbox content same) ... -->
+            <div class="p-4 border-b border-zinc-800">
+                <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                    Widgets
+                </h2>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div class="draggable-widget p-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-500 rounded-lg cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 group"
+                    data-type="label" draggable="true">
+                    <span class="text-lg opacity-60 group-hover:opacity-100 transition-opacity">T</span>
+                    <span class="text-zinc-300 group-hover:text-white text-sm font-medium">Text Label</span>
+                </div>
+                <!-- ... other widgets ... -->
+                <div class="draggable-widget p-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-500 rounded-lg cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 group"
+                    data-type="image" draggable="true">
+                    <span class="text-lg opacity-60 group-hover:opacity-100 transition-opacity">🖼️</span>
+                    <span class="text-zinc-300 group-hover:text-white text-sm font-medium">Image</span>
+                </div>
+                <div class="draggable-widget p-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-500 rounded-lg cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 group"
+                    data-type="shape" draggable="true">
+                    <span class="text-lg opacity-60 group-hover:opacity-100 transition-opacity">⬜</span>
+                    <span class="text-zinc-300 group-hover:text-white text-sm font-medium">Shape</span>
+                </div>
+                <div class="draggable-widget p-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-500 rounded-lg cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 group"
+                    data-type="input-field" draggable="true">
+                    <span class="text-lg opacity-60 group-hover:opacity-100 transition-opacity">🔒</span>
+                    <span class="text-zinc-300 group-hover:text-white text-sm font-medium">Input Field</span>
+                </div>
+                <div class="draggable-widget p-3 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-500 rounded-lg cursor-grab active:cursor-grabbing transition-all flex items-center gap-3 group"
+                    data-type="background" draggable="true">
+                    <span class="text-lg opacity-60 group-hover:opacity-100 transition-opacity">🌄</span>
+                    <span class="text-zinc-300 group-hover:text-white text-sm font-medium">Background</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Editor Area -->
+        <div class="flex-1 flex flex-col relative bg-zinc-900/20">
+            <!-- Toolbar -->
+            <div
+                class="h-12 border-b border-zinc-800 flex items-center px-4 justify-between bg-zinc-900/50 backdrop-blur z-10">
+                <div class="flex items-center gap-4 text-sm text-zinc-400">
+                    <!-- Canvas Size -->
+                    <div class="flex items-center gap-2">
+                        <span>Canvas:</span>
+                        <select id="canvas-size"
+                            class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-teal-500">
+                            <option value="1920x1080">1920 x 1080</option>
+                            <option value="2560x1440">2560 x 1440</option>
+                            <option value="3840x2160">3840 x 2160</option>
+                            <option value="1366x768">1366 x 768</option>
+                        </select>
+                    </div>
+
+                    <!-- Zoom Controls -->
+                    <div class="flex items-center gap-2 border-l border-zinc-700 pl-4">
+                        <span>Zoom:</span>
+                        <button onclick="hyprlockEditor.setZoom(hyprlockEditor.scale - 0.1)"
+                            class="w-6 h-6 flex items-center justify-center hover:bg-zinc-800 rounded text-lg">−</button>
+                        <input type="range" id="zoom-slider" min="10" max="150" value="50"
+                            class="w-24 h-1 accent-teal-500 cursor-pointer">
+                        <button onclick="hyprlockEditor.setZoom(hyprlockEditor.scale + 0.1)"
+                            class="w-6 h-6 flex items-center justify-center hover:bg-zinc-800 rounded text-lg">+</button>
+                        <span id="zoom-display" class="text-xs w-10 text-center">50%</span>
+                        <button onclick="hyprlockEditor.resetZoom()"
+                            class="px-2 py-1 hover:bg-zinc-800 rounded text-xs border border-zinc-700"
+                            title="Reset to 50%">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canvas Container - uses absolute positioning for the scaled canvas -->
+            <div id="canvas-container" class="flex-1 overflow-auto relative"
+                style="background-image: radial-gradient(circle, #333 1px, transparent 1px); background-size: 20px 20px;">
+
+                <!-- The Canvas - absolutely centered using CSS -->
+                <div id="editor-canvas" class="absolute bg-black shadow-2xl ring-1 ring-zinc-800"
+                    style="width: 1920px; height: 1080px; transform: scale(0.5); transform-origin: top left; top: 50px; left: 50px;">
+
+                    <!-- Background Layer -->
+                    <div id="canvas-background-layer" class="absolute inset-0 z-0 overflow-hidden bg-black"></div>
+
+                    <!-- Widget Layer - pointer-events-none so clicks pass through to bg layer -->
+                    <div id="canvas-widgets-layer" class="absolute inset-0 z-10 pointer-events-none"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar: Properties -->
+        <div class="w-80 shrink-0 bg-zinc-900/50 border-l border-zinc-800 flex flex-col z-20 backdrop-blur-sm">
+            <div class="p-4 border-b border-zinc-800">
+                <h2 class="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2">
+                    Properties
+                </h2>
+            </div>
+            <div id="properties-panel" class="flex-1 overflow-y-auto p-4 content-start">
+                <div class="flex flex-col items-center justify-center h-full text-zinc-500 gap-2 opacity-60">
+                    <span class="text-3xl">👆</span>
+                    <p class="text-sm">Select a widget</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/scripts/image_picker.js?k={{ cache_key }}"></script>
+    <script src="/scripts/hyprlock_editor.js?k={{ cache_key }}"></script>
+    <script>
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!window.hyprlockEditor) {
+                window.hyprlockEditor = new HyprlockEditor();
+            }
+        });
+    </script>
+</div>
