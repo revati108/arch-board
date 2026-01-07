@@ -1,0 +1,81 @@
+<div class="w-full h-full flex flex-col relative" id="library-root">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-zinc-100">Library</h1>
+
+        <div class="flex gap-2">
+            <button onclick="window._library.createFolderPrompt()"
+                class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-md text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                <span class="text-lg">📁+</span>
+                <span>New Folder</span>
+            </button>
+
+            <button onclick="document.getElementById('lib-folder-input').click()"
+                class="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-md text-sm text-zinc-300 transition-colors flex items-center gap-2">
+                <span class="text-lg">📂+</span>
+                <span>Upload Folder</span>
+            </button>
+            <input type="file" id="lib-folder-input" class="hidden" webkitdirectory directory multiple
+                onchange="window._library.handleUpload(this.files)">
+
+            <button onclick="document.getElementById('lib-upload-input').click()"
+                class="px-3 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-md text-sm font-medium transition-colors flex items-center gap-2 shadow-lg shadow-teal-900/20">
+                <span class="text-lg">☁️</span>
+                <span>Upload</span>
+            </button>
+            <input type="file" id="lib-upload-input" class="hidden" multiple accept="image/*"
+                onchange="window._library.handleUpload(this.files)">
+        </div>
+    </div>
+
+    <!-- File Explorer Container -->
+    <div id="library-container"
+        class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-sm flex flex-col">
+
+        <!-- Toolbar / Breadcrumbs -->
+        <div class="px-4 py-3 border-b border-zinc-800 bg-zinc-800/50 flex items-center">
+            <div id="lib-breadcrumbs" class="flex items-center gap-1 text-sm text-zinc-400">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div id="lib-content" class="flex-1 overflow-y-auto p-6" ondragover="window._library.onDragOver(event)"
+            ondrop="window._library.handleDrop(event)">
+
+            <!-- Loading -->
+            <div class="flex items-center justify-center h-full text-zinc-500">Loading...</div>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="mt-4 flex items-center justify-between text-xs text-zinc-500">
+        <span id="lib-status">Ready</span>
+        <span>Drag and drop files to upload or move</span>
+    </div>
+
+    <!-- Context Menu (Fixed Position) -->
+    <div id="lib-context-menu"
+        class="fixed hidden bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-50 w-48 py-1">
+        <button class="w-full text-left px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-white"
+            onclick="window._library.ctxRename()">Rename</button>
+        <button class="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-zinc-800 hover:text-red-300"
+            onclick="window._library.ctxDelete()">Delete</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof ImagePicker !== 'undefined') {
+            window._library = new ImagePicker();
+            window._library.mount('library-container', {
+                breadcrumbsId: 'lib-breadcrumbs',
+                contentId: 'lib-content',
+                statusId: 'lib-status',
+                ctxMenuId: 'lib-context-menu'
+            }, {
+                multiselect: true
+            });
+        }
+    });
+</script>

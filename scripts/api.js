@@ -49,7 +49,9 @@ async function updateDashboardStats() {
 }
 
 // Start polling on page load
-document.addEventListener('DOMContentLoaded', () => {
-    updateDashboardStats();
-    setInterval(updateDashboardStats, POLL_INTERVAL);
-});
+if (window.location.pathname == "/" || window.location.pathname == "/system") {
+    document.addEventListener('DOMContentLoaded', () => {
+        updateDashboardStats();
+        setInterval(updateDashboardStats, POLL_INTERVAL);
+    });
+}

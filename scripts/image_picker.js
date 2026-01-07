@@ -2,6 +2,7 @@ class ImagePicker {
     constructor() {
         this.options = {
             multiselect: false,
+            allowFolderSelect: false,
             onSelect: null
         };
         this.isOpen = false;
@@ -17,6 +18,22 @@ class ImagePicker {
         this.close = this.close.bind(this);
         this.handleUpload = this.handleUpload.bind(this);
         this.handleDrop = this.handleDrop.bind(this);
+        this.onDragOver = this.onDragOver.bind(this);
+    }
+
+    mount(containerId, config = {}, options = {}) {
+        this.isMounted = true;
+        this.config = {
+            containerId: containerId,
+            breadcrumbsId: config.breadcrumbsId || 'ip-breadcrumbs',
+            contentId: config.contentId || 'ip-content',
+            statusId: config.statusId || 'ip-status',
+            ctxMenuId: config.ctxMenuId || 'ip-context-menu'
+        };
+        this.options = { ...this.options, ...options };
+
+        // Initial fetch
+        this.fetchItems();
     }
 
     static open(options = {}) {
@@ -27,6 +44,8 @@ class ImagePicker {
     }
 
     show(options) {
+        if (this.isMounted) return;
+
         this.options = { ...this.options, ...options };
         this.isOpen = true;
         this.selected.clear();
@@ -40,10 +59,16 @@ class ImagePicker {
         }
 
         openModal(this.getModalContent());
+        this.config = {
+            breadcrumbsId: 'ip-breadcrumbs',
+            contentId: 'ip-content',
+            statusId: 'ip-status'
+        };
         this.fetchItems();
     }
 
     close() {
+        if (this.isMounted) return;
         this.isOpen = false;
         const modalContent = document.getElementById('modal-content');
         if (modalContent) {
@@ -86,6 +111,11 @@ class ImagePicker {
                         <button onclick="window._imagePicker.createFolderPrompt()" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white" title="New Folder">
                             📁+
                         </button>
+                        <button onclick="document.getElementById('ip-folder-input').click()" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white" title="Upload Folder">
+                            <span class="text-xs">📂+</span>
+                        </button>
+                        <input type="file" id="ip-folder-input" class="hidden" webkitdirectory directory multiple onchange="window._imagePicker.handleUpload(this.files)">
+
                         <button onclick="document.getElementById('ip-upload-input').click()" class="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white" title="Upload Files">
                             ☁️
                         </button>
@@ -129,14 +159,16 @@ class ImagePicker {
     }
 
     renderBreadcrumbs() {
-        const container = document.getElementById('ip-breadcrumbs');
+        const container = document.getElementById(this.config?.breadcrumbsId || 'ip-breadcrumbs');
         if (!container) return;
 
         let html = `<button class="hover:text-white hover:underline px-1" onclick="window._imagePicker.navigateTo(null)">Root</button>`;
 
         this.breadcrumbs.forEach(crumb => {
             html += `<span class="text-zinc-600">/</span>`;
-            html += `<button class="hover:text-white hover:underline px-1 truncate max-w-[150px]" onclick="window._imagePicker.navigateTo('${crumb.id}')">${crumb.name}</button>`;
+            // Check if instance is global _imagePicker or local _library
+            const instanceName = this.isMounted ? 'window._library' : 'window._imagePicker';
+            html += `<button class="hover:text-white hover:underline px-1 truncate max-w-[150px]" onclick="${instanceName}.navigateTo('${crumb.id}')">${crumb.name}</button>`;
         });
 
         container.innerHTML = html;
@@ -144,7 +176,8 @@ class ImagePicker {
     }
 
     renderContent() {
-        const container = document.getElementById('ip-content');
+        const targetId = this.config?.contentId || 'ip-content';
+        const container = document.getElementById(targetId);
         if (!container) return;
 
         if (this.items.length === 0) {
@@ -166,29 +199,50 @@ class ImagePicker {
     renderCard(item) {
         const isSelected = this.selected.has(item.id);
         const isFolder = item.type === 'folder';
+        const instanceName = this.isMounted ? 'window._library' : 'window._imagePicker';
 
         let iconOrImg = '';
+        let metaInfo = '';
+
         if (isFolder) {
             iconOrImg = `<div class="w-full h-full flex items-center justify-center bg-zinc-800 text-5xl">📁</div>`;
+            metaInfo = `<span class="text-[10px] text-zinc-500">Folder</span>`;
         } else {
             iconOrImg = `<img src="/images/raw/${item.id}" class="w-full h-full object-cover pointer-events-none" draggable="false">`;
+
+            // Format size
+            let sizeStr = '';
+            if (item.size) {
+                if (item.size < 1024) sizeStr = item.size + ' B';
+                else if (item.size < 1024 * 1024) sizeStr = (item.size / 1024).toFixed(1) + ' KB';
+                else sizeStr = (item.size / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            const dims = (item.width && item.height) ? `${item.width}x${item.height}` : '';
+            metaInfo = `<div class="flex flex-col text-[10px] text-zinc-500 leading-tight">
+                            <span>${dims}</span>
+                            <span>${sizeStr}</span>
+                        </div>`;
         }
 
         return `
-            <div class="group relative aspect-[4/5] bg-zinc-900/50 rounded-lg border ${isSelected ? 'border-teal-500 ring-1 ring-teal-500/50' : 'border-zinc-800 hover:border-zinc-600'} flex flex-col overflow-hidden transition-all cursor-pointer"
-                 onclick="window._imagePicker.toggleSelect('${item.id}', ${isFolder})"
-                 ondblclick="${isFolder ? `window._imagePicker.navigateTo('${item.id}')` : `window._imagePicker.confirm('${item.id}')`}"
-                 oncontextmenu="window._imagePicker.showCtxMenu(event, '${item.id}')"
+            <div class="group relative h-48 w-full bg-zinc-900/50 rounded-lg border ${isSelected ? 'border-teal-500 ring-1 ring-teal-500/50' : 'border-zinc-800 hover:border-zinc-600'} flex flex-col overflow-hidden transition-all cursor-pointer"
+                 onclick="${instanceName}.toggleSelect('${item.id}', ${isFolder})"
+                 ondblclick="${isFolder ? `${instanceName}.navigateTo('${item.id}')` : `${instanceName}.confirm('${item.id}')`}"
+                 oncontextmenu="${instanceName}.showCtxMenu(event, '${item.id}')"
                  draggable="true"
-                 ondragstart="window._imagePicker.onItemDragStart(event, '${item.id}')"
-                 ondragover="${isFolder ? `window._imagePicker.onItemDragOver(event)` : ''}"
-                 ondrop="${isFolder ? `window._imagePicker.onItemDrop(event, '${item.id}')` : ''}"
+                 ondragstart="${instanceName}.onItemDragStart(event, '${item.id}')"
+                 ondragover="${isFolder ? `${instanceName}.onItemDragOver(event)` : ''}"
+                 ondrop="${isFolder ? `${instanceName}.onItemDrop(event, '${item.id}')` : ''}"
             >
                 <div class="flex-1 overflow-hidden relative">
                     ${iconOrImg}
                 </div>
-                <div class="h-8 flex items-center px-2 bg-zinc-900 border-t border-zinc-800">
-                    <span class="text-xs text-zinc-300 truncate w-full text-center group-hover:text-white" title="${item.name}">${item.name}</span>
+                <div class="h-10 flex items-center justify-between px-2 bg-zinc-900 border-t border-zinc-800">
+                    <span class="text-xs text-zinc-300 truncate font-medium group-hover:text-white max-w-[50%]" title="${item.name}">${item.name}</span>
+                    <div class="text-right shrink-0">
+                        ${metaInfo}
+                    </div>
                 </div>
             </div>
         `;
@@ -202,11 +256,18 @@ class ImagePicker {
     }
 
     toggleSelect(id, isFolder) {
-        // Simple single select for files logic usually, but keep simple
+        // If folder select is disabled and item is folder, navigate instead (single click behavior if needed)
+        // But usually we want standardized behavior.
+
+        // Multi-select logic
         if (this.options.multiselect) {
-            if (this.selected.has(id)) this.selected.delete(id);
-            else this.selected.add(id);
+            if (this.selected.has(id)) {
+                this.selected.delete(id);
+            } else {
+                this.selected.add(id);
+            }
         } else {
+            // Single select
             this.selected.clear();
             this.selected.add(id);
         }
@@ -214,7 +275,8 @@ class ImagePicker {
 
         // Update status
         const count = this.selected.size;
-        document.getElementById('ip-status').innerText = count > 0 ? `${count} selected` : 'Ready';
+        const statusEl = document.getElementById(this.config?.statusId || 'ip-status');
+        if (statusEl) statusEl.innerText = count > 0 ? `${count} selected` : 'Ready';
 
         // Close context menu if open
         this.closeCtxMenu();
@@ -225,14 +287,16 @@ class ImagePicker {
         if (forceId) targets = [this.items.find(i => i.id === forceId)];
         else targets = this.items.filter(i => this.selected.has(i.id));
 
-        // Note: Can we select folders as "value"? 
-        // For now, assuming ImagePicker is for IMAGES only.
-        const files = targets.filter(t => t.type === 'file');
+        // Filter based on allowed types
+        let valid = targets;
+        if (!this.options.allowFolderSelect) {
+            valid = targets.filter(t => t.type === 'file');
+        }
 
-        if (files.length === 0) return;
+        if (valid.length === 0) return;
 
         if (this.options.onSelect) {
-            this.options.onSelect(files);
+            this.options.onSelect(valid);
         }
         this.close();
     }
@@ -263,13 +327,23 @@ class ImagePicker {
         if (!files || files.length === 0) return;
 
         const formData = new FormData();
-        Array.from(files).forEach(f => formData.append('files', f));
+        Array.from(files).forEach(f => {
+            formData.append('files', f);
+            if (f.webkitRelativePath) {
+                formData.append('paths', f.webkitRelativePath);
+            } else {
+                // Regular file upload fallback
+                formData.append('paths', f.name);
+            }
+        });
+
         if (this.currentFolderId) {
             formData.append('parent_id', this.currentFolderId);
         }
 
         // Optimistic loading UI?
-        document.getElementById('ip-status').innerText = "Uploading...";
+        const statusEl = document.getElementById(this.config?.statusId || 'ip-status');
+        if (statusEl) statusEl.innerText = "Uploading...";
 
         try {
             const res = await fetch('/images/upload', {
@@ -278,7 +352,7 @@ class ImagePicker {
             });
             if (res.ok) {
                 this.fetchItems();
-                document.getElementById('ip-status').innerText = "Upload Complete";
+                if (statusEl) statusEl.innerText = "Upload Complete";
             } else {
                 alert("Upload failed");
             }
@@ -362,7 +436,10 @@ class ImagePicker {
         this.selected.add(id);
         this.renderContent();
 
-        const menu = document.getElementById('ip-context-menu');
+        const menuId = this.config?.ctxMenuId || 'ip-context-menu';
+        const menu = document.getElementById(menuId);
+        if (!menu) return;
+
         menu.classList.remove('hidden');
         menu.style.left = `${e.clientX}px`;
         menu.style.top = `${e.clientY}px`;
@@ -376,7 +453,9 @@ class ImagePicker {
     }
 
     closeCtxMenu() {
-        document.getElementById('ip-context-menu').classList.add('hidden');
+        const menuId = this.config?.ctxMenuId || 'ip-context-menu';
+        const menu = document.getElementById(menuId);
+        if (menu) menu.classList.add('hidden');
         this.ctxId = null;
     }
 

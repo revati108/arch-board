@@ -29,15 +29,6 @@ class HyprlockEditor {
     }
 
     setupCanvasControls() {
-        // Canvas size dropdown
-        const sizeSelect = document.getElementById('canvas-size');
-        if (sizeSelect) {
-            sizeSelect.onchange = (e) => {
-                const [w, h] = e.target.value.split('x').map(Number);
-                this.setCanvasSize(w, h);
-            };
-        }
-
         // Zoom slider
         const zoomSlider = document.getElementById('zoom-slider');
         if (zoomSlider) {
@@ -328,7 +319,7 @@ class HyprlockEditor {
             el.style.fontFamily = d.font_family || 'Sans';
             // Rotation - need to preserve existing transform
             const existingTransform = el.style.transform || '';
-            if (d.rotate) el.style.transform = existingTransform + ` rotate(${d.rotate}deg)`;
+            if (d.rotate) el.style.transform = existingTransform + ` rotate(${-d.rotate}deg)`;
             el.style.whiteSpace = 'nowrap';
             // Shadow
             if (d.shadow_passes > 0 && d.shadow_size > 0) {
@@ -362,7 +353,7 @@ class HyprlockEditor {
             if (d.rounding === -1) el.style.borderRadius = `${Math.min(w, h) / 2}px`;
             else if (d.rounding) el.style.borderRadius = `${d.rounding}px`;
 
-            if (d.rotate) el.style.transform += ` rotate(${d.rotate}deg)`;
+            if (d.rotate) el.style.transform += ` rotate(${-d.rotate}deg)`;
 
         } else if (widget.type === 'image') {
             const targetSize = parseInt(d.size) || 150;
@@ -426,7 +417,7 @@ class HyprlockEditor {
 
             if (d.rotate) {
                 const existingTransform = el.style.transform || '';
-                el.style.transform = existingTransform + ` rotate(${d.rotate}deg)`;
+                el.style.transform = existingTransform + ` rotate(${-d.rotate}deg)`;
             }
 
             el.appendChild(img);
@@ -1170,15 +1161,32 @@ class HyprlockEditor {
             // ENTER Full Screen
             document.body.classList.add('hyprlock-fullscreen');
 
+            // Auto-fit zoom logic
+            const screenW = window.screen.width;
+            const screenH = window.screen.height;
+            // Assuming default canvas size 1920x1080, or get from current settings
+            // Ideally we'd read current canvas dims if dynamic, but fixed for now/safe default
+            const scaleX = screenW / 1920;
+            const scaleY = screenH / 1080;
+            const fitScale = Math.min(scaleX, scaleY);
+
+            // Store previous scale to restore later
+            this.prevScale = this.scale;
+            this.setZoom(fitScale);
+
             // Try to make browser go full screen
-            if (editor.requestFullscreen) editor.requestFullscreen();
-            else if (editor.webkitRequestFullscreen) editor.webkitRequestFullscreen();
+            if (container.requestFullscreen) container.requestFullscreen();
+            else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
 
             if (exitBtn) exitBtn.classList.remove('hidden');
 
         } else {
             // EXIT Full Screen
             document.body.classList.remove('hyprlock-fullscreen');
+
+            // Restore previous scale
+            if (this.prevScale) this.setZoom(this.prevScale);
+            else this.setZoom(0.5); // Default fallback
 
             // Exit browser full screen
             if (document.exitFullscreen) document.exitFullscreen().catch(e => { });

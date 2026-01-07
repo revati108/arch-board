@@ -12,6 +12,38 @@ from pathlib import Path
 # Router Definition
 images_router = APIRouter(prefix="/images", tags=["images"])
 
+from fastapi.responses import HTMLResponse
+from xtracto import Parser
+from utils.config import get_context
+from utils.plugins_frontend import register_navigation, NavItem
+
+# Register Navigation
+register_navigation([
+    NavItem(
+        id="library",
+        title="Library",
+        url="/images/library",
+        icon="default", 
+        icon_svg='<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>',
+        order=20 
+    )
+])
+
+@images_router.get("/library", response_class=HTMLResponse)
+async def library_page():
+    parser = Parser(path="library.pypx")
+    parser.render(context=get_context({
+        "current_page": "library",
+        "page_title": "ArchBoard - Asset Library",
+        "page_header": "Asset Library",
+        "page_description": "Manage your images and assets",
+        "title": "Library - ArchBoard",
+        "description": "Asset Library",
+        "page_id": "library",
+    }))
+    return HTMLResponse(parser.html_content)
+
+
 # Constants
 IMAGES_DIR = os.path.expanduser("~/.archboard/images")
 MAPPING_FILE = os.path.join(IMAGES_DIR, "filesystem.json")
@@ -83,10 +115,48 @@ class FileSystemManager:
 
     def list_items(self, parent_id: Optional[str] = None) -> List[Dict]:
         result = []
-        for item in self.fs["items"].values():
-            if item.get("parent_id") == parent_id:
-                result.append(item)
+        needs_save = False
         
+        # We need to list items but also lazily hydrate metadata if missing
+        import os
+        from PIL import Image
+
+        for item_id, item in self.fs["items"].items():
+            if item.get("parent_id") != parent_id:
+                continue
+                
+            # Lazy Load Metadata
+            if item["type"] == "file":
+                changed = False
+                path = item.get("path")
+                
+                # Check Size
+                if "size" not in item or item["size"] == 0:
+                    if path and os.path.exists(path):
+                        try:
+                            item["size"] = os.path.getsize(path)
+                            changed = True
+                        except:
+                             pass
+                            
+                # Check Dimensions (only for images)
+                if "width" not in item or "height" not in item or item["width"] == 0:
+                    if path and os.path.exists(path):
+                        try:
+                            with Image.open(path) as img:
+                                item["width"], item["height"] = img.size
+                                changed = True
+                        except Exception:
+                            pass
+                
+                if changed:
+                    needs_save = True
+
+            result.append(item)
+        
+        if needs_save:
+            self.save_fs()
+
         # Sort: Folders first, then by name
         result.sort(key=lambda x: (x["type"] != "folder", x["name"].lower()))
         return result
@@ -117,13 +187,29 @@ class FileSystemManager:
         with open(storage_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
             
+        # Extract init metadata
+        size = 0
+        width = 0
+        height = 0
+        
+        try:
+            size = os.path.getsize(storage_path)
+            from PIL import Image
+            with Image.open(storage_path) as img:
+                width, height = img.size
+        except:
+            pass
+            
         item = {
             "id": file_id,
             "parent_id": parent_id,
             "type": "file",
             "name": file.filename,
             "path": storage_path,
-            "created_at": time.time()
+            "created_at": time.time(),
+            "size": size,
+            "width": width,
+            "height": height
         }
         self.fs["items"][file_id] = item
         self.save_fs()
@@ -200,6 +286,9 @@ class ItemResponse(BaseModel):
     type: str # 'file' or 'folder'
     name: str
     created_at: float
+    size: Optional[int] = 0
+    width: Optional[int] = 0
+    height: Optional[int] = 0
 
 class ListResponse(BaseModel):
     items: List[ItemResponse]
@@ -232,14 +321,47 @@ async def create_folder(req: CreateFolderRequest):
 @images_router.post("/upload")
 async def upload_files(
     files: List[UploadFile] = File(...), 
-    parent_id: Optional[str] = Form(None)
+    parent_id: Optional[str] = Form(None),
+    paths: Optional[List[str]] = Form(None) # List of relative paths corresponding to files
 ):
     if parent_id == "" or parent_id == "null":
         parent_id = None
         
     results = []
-    for file in files:
-        item = manager.add_file(file, parent_id)
+    
+    # helper to find or create folder path
+    def get_target_parent(base_parent_id, rel_path):
+        parts = rel_path.strip("/").split("/")
+        # The last part is the filename, ignore it for folder creation
+        if len(parts) <= 1:
+            return base_parent_id
+            
+        folder_names = parts[:-1]
+        current_parent_id = base_parent_id
+        
+        for name in folder_names:
+            # Check if folder exists in current parent
+            existing = None
+            for item in manager.list_items(current_parent_id):
+                if item["type"] == "folder" and item["name"] == name:
+                    existing = item
+                    break
+            
+            if existing:
+                current_parent_id = existing["id"]
+            else:
+                # Create it
+                new_folder = manager.create_folder(name, current_parent_id)
+                current_parent_id = new_folder["id"]
+        
+        return current_parent_id
+
+    for idx, file in enumerate(files):
+        target_parent = parent_id
+        if paths and idx < len(paths):
+            target_parent = get_target_parent(parent_id, paths[idx])
+            
+        item = manager.add_file(file, target_parent)
         results.append(item)
     return results
 
@@ -266,14 +388,14 @@ async def rename_item(item_id: str, req: RenameRequest):
 
 @images_router.get("/raw/{image_id}")
 async def get_raw_image(image_id: str):
+    import mimetypes
+    
     # Lookup in FS
     item = manager.get_item(image_id)
     if item and item["type"] == "file" and os.path.exists(item["path"]):
-        return FileResponse(item["path"])
-    
-    # Fallback to check storage directly if ID matches filename (legacy)
-    # or partial match logic from before could be kept if needed, but 
-    # migration should have handled it.
+        # Guess mime type to be safe
+        mime, _ = mimetypes.guess_type(item["path"])
+        return FileResponse(item["path"], media_type=mime)
     
     raise HTTPException(404, "Image not found")
 

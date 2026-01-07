@@ -82,13 +82,8 @@
             /* Toolbar */
             display: none !important;
         }
-
-        body.hyprlock-fullscreen #canvas-container {
-            background-color: #000;
-        }
     </style>
 
-    <!-- Main Editor Card -->
     <!-- Main Editor Card -->
     <div id="main-editor-card"
         class="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden shadow-2xl flex h-[800px] relative">
@@ -137,18 +132,6 @@
             <div
                 class="h-12 border-b border-zinc-800 flex items-center px-4 justify-between bg-zinc-900/50 backdrop-blur z-10">
                 <div class="flex items-center gap-4 text-sm text-zinc-400">
-                    <!-- Canvas Size -->
-                    <div class="flex items-center gap-2">
-                        <span>Canvas:</span>
-                        <select id="canvas-size"
-                            class="bg-zinc-950 border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-teal-500">
-                            <option value="1920x1080">1920 x 1080</option>
-                            <option value="2560x1440">2560 x 1440</option>
-                            <option value="3840x2160">3840 x 2160</option>
-                            <option value="1366x768">1366 x 768</option>
-                        </select>
-                    </div>
-
                     <!-- Zoom Controls -->
                     <div class="flex items-center gap-2 border-l border-zinc-700 pl-4">
                         <span>Zoom:</span>
@@ -217,7 +200,6 @@
         </div>
     </div>
 
-    <script src="/scripts/image_picker.js?k={{ cache_key }}"></script>
     <script src="/scripts/hyprlock_editor.js?k={{ cache_key }}"></script>
     <script>
         // Initialize
