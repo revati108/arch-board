@@ -476,21 +476,43 @@ async def update_layer_rule(update: LayerRuleUpdate):
         
                                             
         if use_new_syntax:
-                                                              
-            effect_part = update.effect
+            # New syntax: effect on, match:namespace namespace
+            effect_part = update.effect.strip()
+            
+            # Normalize common legacy inputs to new syntax
+            if effect_part == "ignorezero":
+                effect_part = "ignore_alpha 0"
+            elif effect_part == "stayfocused":
+                effect_part = "stay_focused"
+            elif effect_part.startswith("ignorealpha"):
+                effect_part = effect_part.replace("ignorealpha", "ignore_alpha", 1)
+
+            # Ensure proper formatting
+            # "blur" -> "blur on"
+            # "ignore_alpha 0.5" -> "ignore_alpha 0.5" (no on)
             if " " not in effect_part:
                 effect_part = f"{effect_part} on"
-                
-                  
-            if effect_part.startswith("ignorealpha"):
-                effect_part = effect_part.replace("ignorealpha", "ignore_alpha", 1)
-            if effect_part == "stayfocused":         
-                 effect_part = "stay_focused on"
 
             new_line = f"layerrule = {effect_part}, match:namespace {update.namespace}\n"
         else:
-                                              
-            new_line = f"layerrule = {update.effect}, {update.namespace}\n"
+            # Legacy syntax: effect, namespace
+            effect_part = update.effect.strip()
+            
+            # Back-port new syntax inputs to legacy if needed
+            if effect_part == "stay_focused":
+                effect_part = "stayfocused"
+            elif effect_part == "ignore_alpha 0":
+                effect_part = "ignorezero"
+            elif effect_part.startswith("ignore_alpha"):
+                 # legacy used ignorealpha (no underscore)
+                 effect_part = effect_part.replace("ignore_alpha", "ignorealpha", 1)
+            
+            # Legacy doesn't use "on", usually just "effect"
+            # note: older hyprland might tolerate 'on' but usually it was 'blur,namespace'
+            if effect_part.endswith(" on"):
+                effect_part = effect_part[:-3]
+                
+            new_line = f"layerrule = {effect_part}, {update.namespace}\n"
 
         if update.action == "add":
                                                                                        

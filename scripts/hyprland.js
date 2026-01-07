@@ -1,4 +1,4 @@
- 
+
 
 let schema = [];
 let config = {};
@@ -13,26 +13,26 @@ let presets = [];
 let activePreset = null;
 let pendingChanges = {};
 let migrationStatus = null;
- 
+
 const urlParams = new URLSearchParams(window.location.search);
 let activeTab = urlParams.get('tab') || localStorage.getItem('hyprland_active_tab') || 'general';
 
- 
+
 function checkHighlight() {
     const selector = urlParams.get('highlight');
     if (selector) {
-         
+
         setTimeout(() => {
-             
-             
+
+
             try {
                 const el = document.querySelector(selector);
                 if (el) {
                     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                     
+
                     const highlightClasses = ['ring-2', 'ring-teal-500', 'bg-teal-500/20', 'transition-all', 'duration-1000'];
                     el.classList.add(...highlightClasses);
-                     
+
                     setTimeout(() => el.classList.remove(...highlightClasses), 3000);
                 }
             } catch (e) {
@@ -42,10 +42,10 @@ function checkHighlight() {
     }
 }
 
- 
- 
 
- 
+
+
+
 const SPECIAL_TABS = [
     { id: 'monitors', title: 'Monitors', icon: '🖥️' },
     { id: 'binds', title: 'Keybinds', icon: '⌨️' },
@@ -56,9 +56,9 @@ const SPECIAL_TABS = [
     { id: 'env', title: 'Environment', icon: '🌍' }
 ];
 
- 
- 
- 
+
+
+
 
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([
@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderTabContent(activeTab);
     renderPresetSelector();
 
-     
+
     if (migrationStatus && migrationStatus.needs_migration &&
         migrationStatus.version && migrationStatus.version.supports_new_window_rules) {
         showMigrationModal();
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 
- 
+
 function isAutosaveEnabled() {
     return typeof ArchBoard !== 'undefined' ? ArchBoard.settings.autosaveEnabled : false;
 }
@@ -187,9 +187,9 @@ function generateMatchString() {
     const win = openWindows[selectedWindowIndex];
     const checkedProps = Array.from(document.querySelectorAll('input[name="match-prop"]:checked'));
 
-     
+
     if (checkedProps.length === 0) {
-         
+
         document.getElementById('rule-match').value = "";
         return;
     }
@@ -201,7 +201,7 @@ function generateMatchString() {
         const prop = checkbox.value;
         let val = win[prop] || "";
 
-         
+
         val = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
         let regexVal = "";
@@ -290,7 +290,7 @@ async function runMigration() {
         if (result.success && result.migrated) {
             closeModal();
             showToast(`Migrated ${result.migrated_rules} rules. Backup: ${result.backup_path}`, 'success');
-             
+
             await Promise.all([loadWindowRules(), loadLayerRules(), loadConfig()]);
             renderTabContent(activeTab);
         } else if (result.success && !result.migrated) {
@@ -305,15 +305,15 @@ async function runMigration() {
     }
 }
 
- 
- 
- 
+
+
+
 
 
 function renderTabs() {
     const nav = document.getElementById('tab-nav');
 
-     
+
     const schemaTabs = schema.map(tab => `
         <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
@@ -323,7 +323,7 @@ function renderTabs() {
         </button>
     `).join('');
 
-     
+
     const specialTabs = SPECIAL_TABS.map(tab => `
         <button class="flex items-center gap-2 px-4 py-2.5 bg-transparent border-none rounded-lg text-zinc-400 text-sm cursor-pointer whitespace-nowrap hover:bg-zinc-800 hover:text-zinc-300 transition-all duration-200 ${tab.id === activeTab ? 'bg-zinc-800 text-teal-500 shadow-sm' : ''}" 
                 data-tab="${tab.id}" 
@@ -340,7 +340,7 @@ function switchTab(tabId) {
     activeTab = tabId;
     localStorage.setItem('hyprland_active_tab', tabId);
 
-     
+
     document.querySelectorAll('[data-tab]').forEach(btn => {
         const isActive = btn.dataset.tab === tabId;
         if (isActive) {
@@ -356,7 +356,7 @@ function switchTab(tabId) {
 function renderTabContent(tabId) {
     const content = document.getElementById('tab-content');
 
-     
+
     switch (tabId) {
         case 'monitors':
             content.innerHTML = renderMonitorsTab();
@@ -381,7 +381,7 @@ function renderTabContent(tabId) {
             return;
     }
 
-     
+
     const tab = schema.find(t => t.id === tabId);
     if (!tab) return;
     content.innerHTML = tab.sections.map(section => renderSection(section)).join('');
@@ -389,9 +389,9 @@ function renderTabContent(tabId) {
     checkHighlight();
 }
 
- 
- 
- 
+
+
+
 
 function renderMonitorsTab() {
     return `
@@ -418,7 +418,7 @@ function renderMonitorsTab() {
 }
 
 function renderBindsTab() {
-     
+
     const grouped = {};
     binds.forEach(b => {
         if (!grouped[b.type]) grouped[b.type] = [];
@@ -609,7 +609,7 @@ function renderExecTab() {
 }
 
 function renderEnvTab() {
-     
+
     const categories = {
         'GTK/GDK': [],
         'QT': [],
@@ -652,7 +652,7 @@ function renderEnvTab() {
                 ${envVars.length === 0 ? '<p class="text-center text-zinc-500 p-8">No environment variables configured</p>' : ''}
     `;
 
-     
+
     for (const [category, vars] of Object.entries(categories)) {
         if (vars.length > 0) {
             html += `
@@ -1557,17 +1557,21 @@ function showAddLayerRuleModal() {
         <div class="mb-6">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
-                <select id="layerrule-effect" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors">
-                    <option value="blur">blur - Apply blur effect</option>
-                    <option value="ignorezero">ignorezero - Ignore transparent pixels</option>
-                    <option value="ignorealpha 0.5">ignorealpha 0.5 - Ignore low alpha</option>
-                    <option value="noanim">noanim - Disable animations</option>
-                    <option value="animation slide">animation slide - Slide animation</option>
-                    <option value="animation popin">animation popin - Pop-in animation</option>
-                    <option value="animation fade">animation fade - Fade animation</option>
-                    <option value="dimaround">dimaround - Dim around layer</option>
-                    <option value="xray 1">xray - See through layer</option>
-                </select>
+                <div class="space-y-2">
+                    <input type="text" id="layerrule-effect-input" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" placeholder="e.g., blur, ignorezero, ignore_alpha 0.5">
+                    <select id="layerrule-effect-preset" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors appearance-none text-zinc-400" onchange="document.getElementById('layerrule-effect-input').value = this.value; this.value = '';">
+                        <option value="" disabled selected>Select a preset...</option>
+                        <option value="blur">Blur (Standard)</option>
+                        <option value="ignorezero">Ignore Zero (Transparent Pixels)</option>
+                        <option value="ignore_alpha 0.5">Ignore Alpha 0.5 (Semi-transparent)</option>
+                        <option value="noanim">No Animation</option>
+                        <option value="animation slide">Animation: Slide</option>
+                        <option value="animation popin">Animation: Popin</option>
+                        <option value="animation fade">Animation: Fade</option>
+                        <option value="dimaround">Dim Around</option>
+                        <option value="stay_focused">Stay Focused</option>
+                    </select>
+                </div>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-400 mb-1.5">Namespace (Layer Surface)</label>
@@ -1583,7 +1587,7 @@ function showAddLayerRuleModal() {
 }
 
 async function addLayerRule() {
-    const effect = document.getElementById('layerrule-effect').value;
+    const effect = document.getElementById('layerrule-effect-input').value.trim();
     const namespace = document.getElementById('layerrule-namespace').value.trim();
 
     if (!namespace) {
@@ -1622,7 +1626,17 @@ function showEditLayerRuleModal(effect, namespace, raw) {
         <div class="mb-6">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-400 mb-1.5">Effect</label>
-                <input type="text" id="layerrule-effect" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedEffect}">
+                <div class="space-y-2">
+                    <input type="text" id="layerrule-effect-input" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors" value="${escapedEffect}">
+                    <select id="layerrule-effect-preset" class="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-200 text-sm focus:outline-none focus:border-teal-500 transition-colors appearance-none text-zinc-400" onchange="document.getElementById('layerrule-effect-input').value = this.value; this.value = '';">
+                        <option value="" disabled selected>Or choose a preset...</option>
+                        <option value="blur">Blur (Standard)</option>
+                        <option value="ignorezero">Ignore Zero</option>
+                        <option value="ignore_alpha 0.5">Ignore Alpha 0.5</option>
+                        <option value="noanim">No Animation</option>
+                        <option value="stay_focused">Stay Focused</option>
+                    </select>
+                </div>
             </div>
             <div class="mb-4">
                 <label class="block text-sm font-medium text-zinc-400 mb-1.5">Namespace</label>
@@ -1637,7 +1651,7 @@ function showEditLayerRuleModal(effect, namespace, raw) {
 }
 
 async function updateLayerRule(oldRaw) {
-    const effect = document.getElementById('layerrule-effect').value;
+    const effect = document.getElementById('layerrule-effect-input').value.trim();
     const namespace = document.getElementById('layerrule-namespace').value.trim();
 
     try {
@@ -2700,7 +2714,7 @@ async function deletePreset(presetId) {
 
         if (!response.ok) throw new Error('Delete failed');
 
-         
+
         presets = presets.filter(p => p.id !== presetId);
         if (activePreset === presetId) {
             activePreset = null;
