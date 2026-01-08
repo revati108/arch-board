@@ -171,7 +171,12 @@ class HyprlockEditor {
     triggerAutosave() {
         if (this.isAutosaveEnabled()) {
             if (this.saveTimeout) clearTimeout(this.saveTimeout);
-            this.saveTimeout = setTimeout(() => this.saveConfig(), 500);
+            this.saveTimeout = setTimeout(async () => {
+                await this.saveConfig();
+                if (this.activePreset) {
+                    this.updateActivePreset(true); // Silent update
+                }
+            }, 500);
         }
     }
 
@@ -1218,6 +1223,12 @@ class HyprlockEditor {
                     onclick="hyprlockEditor.showSavePresetModal()" title="Save as new preset">
                     💾 Save As
                 </button>
+                ${this.activePreset ? `
+                    <button class="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white text-xs rounded transition-colors flex items-center gap-1"
+                        onclick="hyprlockEditor.updateActivePreset()" title="Update active preset">
+                        <span>💾</span>
+                    </button>
+                ` : ''}
                 ${this.presets.length > 0 ? `
                     <button class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded transition-colors"
                         onclick="hyprlockEditor.showManagePresetsModal()" title="Manage presets">
@@ -1226,6 +1237,26 @@ class HyprlockEditor {
                 ` : ''}
             </div>
         `;
+    }
+
+    async updateActivePreset(silent = false) {
+        if (!this.activePreset) return;
+
+        try {
+            // Ensure current config is saved to file first (source of truth)
+            await this.saveConfig();
+
+            const response = await fetch(`/presets/hyprlock/${this.activePreset}/update-content`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) throw new Error('Update failed');
+
+            if (!silent) showToast('Preset updated!', 'success');
+        } catch (e) {
+            console.error(e);
+            if (!silent) showToast('Failed to update preset', 'error');
+        }
     }
 
     async handlePresetChange(presetId) {
