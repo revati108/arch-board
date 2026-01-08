@@ -28,11 +28,11 @@ for router in get_routers():
 if __name__ == "__main__":
     import uvicorn
     # if config.production:
-        # if os.path.exists(config.build_dir):
-        #     shutil.rmtree(os.path.abspath(config.build_dir))
-        # Builder().build()
+    #     if os.path.exists(config.build_dir):
+    #         shutil.rmtree(os.path.abspath(config.build_dir))
+    #     Builder().build()
     uvicorn.run(
         "main:app", host="0.0.0.0", port=5000, reload=RELOAD_SERVER,
-                reload_excludes=["components", "pages", "assets"],
+                reload_excludes=["components", "pages", "assets"] if RELOAD_SERVER else None,
                 # workers=4
                 )
