@@ -1,4 +1,4 @@
-<html><head><title>{{ page_title }}</title><meta name="description" content="{{page_description }}" /><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" /><link rel="stylesheet" href="/tailwind.css?k={{cache_key }}" /><script src="/scripts/local_settings.js?k={{cache_key }}"></script><script src="/scripts/renderer.js?k={{cache_key }}"></script><script src="/scripts/utils.js?k={{cache_key }}"></script><script src="/scripts/image_picker.js?k={{cache_key }}"></script><script>const prod = {{ production }};const plugin_enabled = {{ plugin_enabled }};</script></head><body class="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100 font-sans"><aside
+<html><head><title>{{ page_title }}</title><meta name="description" content="{{page_description }}" /><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" /><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" /><link rel="stylesheet" href="/tailwind.css?k={{cache_key }}" /><script src="/scripts/local_settings.js?k={{cache_key }}"></script><script src="/scripts/renderer.js?k={{cache_key }}"></script><script src="/scripts/utils.js?k={{cache_key }}"></script><script src="/scripts/image_picker.js?k={{cache_key }}"></script><script src="/scripts/preset_manager.js?k={{cache_key }}"></script><script>const prod = {{ production }};const plugin_enabled = {{ plugin_enabled }};</script></head><body class="flex h-screen overflow-hidden bg-zinc-950 text-zinc-100 font-sans"><aside
   class="w-64 h-screen bg-zinc-900 text-zinc-400 border-r border-zinc-800/50 flex flex-col flex-shrink-0 select-none">
 
   <!-- Logo -->
@@ -208,6 +208,9 @@
     <div class="w-1/3 bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden flex flex-col">
 
         <div class="p-5 border-b border-[#27272a] flex flex-col gap-4 bg-[#27272a]/30">
+
+            <!-- PRESETS -->
+            <div id="preset-container" class="border-b border-zinc-800 pb-4"></div>
 
             <!-- General Settings -->
             <div class="grid grid-cols-2 gap-2">

@@ -19,12 +19,19 @@ class HyprlockEditor {
         this.setupDragAndDrop();
         this.setupCanvasInteractions();
         this.setupCanvasControls();
-        await Promise.all([
-            this.loadConfig(),
-            this.loadPresets()
-        ]);
+        await this.loadConfig();
         this.render();
-        this.renderPresetSelector();
+
+        // Initialize unified preset manager
+        window._presetManagers['hyprlock'] = new PresetManagerUI('hyprlock', {
+            containerId: 'preset-container',
+            onActivate: async () => {
+                await this.loadConfig();
+                this.render();
+            },
+            onSave: async () => await this.saveConfig()
+        });
+
         setTimeout(() => this.fitToContainer(), 100);
     }
 
@@ -173,8 +180,9 @@ class HyprlockEditor {
             if (this.saveTimeout) clearTimeout(this.saveTimeout);
             this.saveTimeout = setTimeout(async () => {
                 await this.saveConfig();
-                if (this.activePreset) {
-                    this.updateActivePreset(true); // Silent update
+                // Silent update via global manager
+                if (window._presetManagers['hyprlock']) {
+                    window._presetManagers['hyprlock'].updateActivePreset(true);
                 }
             }, 500);
         }
@@ -1199,220 +1207,20 @@ class HyprlockEditor {
         }
     }
 
+
+
+    // Unified preset manager handles this now.
     renderPresetSelector() {
-        const container = document.getElementById('preset-selector');
-        if (!container) return;
-
-        const activePresetData = this.presets.find(p => p.id === this.activePreset);
-
-        container.innerHTML = `
-            <div class="flex items-center gap-2">
-                <span class="text-xs font-semibold text-zinc-500 uppercase">Preset:</span>
-                <select id="preset-dropdown" onchange="hyprlockEditor.handlePresetChange(this.value)" 
-                    class="bg-zinc-800 border-none text-zinc-200 text-sm rounded-md px-2 py-1 focus:ring-1 focus:ring-teal-500 cursor-pointer outline-none hover:bg-zinc-700">
-                    <option value="">-- No Preset --</option>
-                    ${this.presets.map(p => `
-                        <option value="${p.id}" ${p.id === this.activePreset ? 'selected' : ''}>
-                            ${p.name}
-                        </option>
-                    `).join('')}
-                </select>
-            </div>
-            <div class="flex items-center gap-1">
-                <button class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded transition-colors" 
-                    onclick="hyprlockEditor.showSavePresetModal()" title="Save as new preset">
-                    💾 Save As
-                </button>
-                ${this.activePreset ? `
-                    <button class="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white text-xs rounded transition-colors flex items-center gap-1"
-                        onclick="hyprlockEditor.updateActivePreset()" title="Update active preset">
-                        <span>💾</span>
-                    </button>
-                ` : ''}
-                ${this.presets.length > 0 ? `
-                    <button class="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded transition-colors"
-                        onclick="hyprlockEditor.showManagePresetsModal()" title="Manage presets">
-                        ⚙️
-                    </button>
-                ` : ''}
-            </div>
-        `;
+        // Placeholder to prevent errors if called
     }
 
     async updateActivePreset(silent = false) {
-        if (!this.activePreset) return;
-
-        try {
-            // Ensure current config is saved to file first (source of truth)
-            await this.saveConfig();
-
-            const response = await fetch(`/presets/hyprlock/${this.activePreset}/update-content`, {
-                method: 'POST'
-            });
-
-            if (!response.ok) throw new Error('Update failed');
-
-            if (!silent) showToast('Preset updated!', 'success');
-        } catch (e) {
-            console.error(e);
-            if (!silent) showToast('Failed to update preset', 'error');
+        if (window._presetManagers['hyprlock']) {
+            await window._presetManagers['hyprlock'].updateActivePreset(silent);
         }
     }
 
-    async handlePresetChange(presetId) {
-        if (!presetId) {
-            // Deactivate current preset
-            try {
-                await fetch('/presets/hyprlock/deactivate', { method: 'POST' });
-                this.activePreset = null;
-                this.renderPresetSelector();
-                showToast('Preset deactivated', 'info');
-            } catch (e) {
-                showToast('Failed to deactivate preset', 'error');
-            }
-            return;
-        }
 
-        await this.activatePreset(presetId);
-    }
-
-    async activatePreset(presetId) {
-        try {
-            const response = await fetch(`/presets/hyprlock/${presetId}/activate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ backup_current: true })
-            });
-
-            if (!response.ok) throw new Error('Activation failed');
-
-            this.activePreset = presetId;
-
-            // Reload config to reflect changes
-            await this.loadConfig();
-            this.render();
-            this.renderPresetSelector();
-
-            const preset = this.presets.find(p => p.id === presetId);
-            showToast(`Preset "${preset?.name || presetId}" activated!`, 'success');
-        } catch (e) {
-            showToast('Failed to activate preset', 'error');
-            document.getElementById('preset-dropdown').value = this.activePreset || '';
-        }
-    }
-
-    showSavePresetModal() {
-        openModal(`
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-zinc-100">Save Preset</h2>
-                <button onclick="closeModal()" class="text-zinc-400 hover:text-white">✕</button>
-            </div>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm text-zinc-400 mb-1">Preset Name</label>
-                    <input type="text" id="preset-name" placeholder="My Lockscreen Theme"
-                        class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 focus:border-teal-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm text-zinc-400 mb-1">Description (optional)</label>
-                    <textarea id="preset-description" placeholder="Dark theme with blurred background..."
-                        class="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-zinc-100 focus:border-teal-500 outline-none h-20 resize-none"></textarea>
-                </div>
-                <div class="flex justify-end gap-2 mt-6">
-                    <button onclick="closeModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg">Cancel</button>
-                    <button onclick="hyprlockEditor.saveNewPreset()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg">Save Preset</button>
-                </div>
-            </div>
-        `);
-    }
-
-    async saveNewPreset() {
-        const name = document.getElementById('preset-name')?.value?.trim();
-        const description = document.getElementById('preset-description')?.value?.trim() || '';
-
-        if (!name) {
-            showToast('Preset name is required', 'error');
-            return;
-        }
-
-        try {
-            // First save current config to file
-            await this.saveConfig();
-
-            // Then create preset from current config
-            const response = await fetch('/presets/hyprlock', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description })
-            });
-
-            if (!response.ok) throw new Error('Failed to create preset');
-
-            const preset = await response.json();
-            this.presets.push(preset);
-            this.activePreset = preset.id;
-            this.renderPresetSelector();
-
-            closeModal();
-            showToast(`Preset "${name}" saved!`, 'success');
-        } catch (e) {
-            showToast('Failed to save preset', 'error');
-        }
-    }
-
-    showManagePresetsModal() {
-        const presetRows = this.presets.map(p => `
-            <div class="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg ${p.id === this.activePreset ? 'ring-1 ring-teal-500' : ''}">
-                <div>
-                    <div class="font-medium text-zinc-200">${p.name}</div>
-                    <div class="text-xs text-zinc-500">${p.description || 'No description'}</div>
-                </div>
-                <div class="flex items-center gap-2">
-                    ${p.id !== this.activePreset ? `
-                        <button onclick="hyprlockEditor.activatePreset('${p.id}'); closeModal();" 
-                            class="px-2 py-1 bg-teal-600 hover:bg-teal-500 text-white text-xs rounded">Activate</button>
-                    ` : '<span class="text-xs text-teal-400">Active</span>'}
-                    <button onclick="hyprlockEditor.deletePreset('${p.id}')" 
-                        class="px-2 py-1 bg-red-900/50 hover:bg-red-800 text-red-300 text-xs rounded">Delete</button>
-                </div>
-            </div>
-        `).join('');
-
-        openModal(`
-            <div class="flex items-center justify-between mb-6">
-                <h2 class="text-xl font-bold text-zinc-100">Manage Presets</h2>
-                <button onclick="closeModal()" class="text-zinc-400 hover:text-white">✕</button>
-            </div>
-            <div class="space-y-2 max-h-80 overflow-y-auto">
-                ${presetRows || '<p class="text-zinc-500 text-center py-4">No presets saved yet</p>'}
-            </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeModal()" class="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg">Close</button>
-            </div>
-        `);
-    }
-
-    async deletePreset(presetId) {
-        if (!confirm('Delete this preset? This cannot be undone.')) return;
-
-        try {
-            const response = await fetch(`/presets/hyprlock/${presetId}`, { method: 'DELETE' });
-            if (!response.ok) throw new Error('Delete failed');
-
-            this.presets = this.presets.filter(p => p.id !== presetId);
-            if (this.activePreset === presetId) this.activePreset = null;
-
-            this.renderPresetSelector();
-            this.showManagePresetsModal(); // Refresh modal
-            showToast('Preset deleted', 'success');
-        } catch (e) {
-            showToast('Failed to delete preset', 'error');
-        }
-    }
-
-    // =========================================================================
-    // FULL SCREEN PREVIEW
-    // =========================================================================
 
     toggleFullScreen() {
         const editor = document.getElementById('hyprlock-editor');
@@ -1445,17 +1253,38 @@ class HyprlockEditor {
 
             if (exitBtn) exitBtn.classList.remove('hidden');
 
+            // Setup exit handler
+            const onExit = () => this.toggleFullScreen();
+            exitBtn.onclick = onExit;
+
+            // Handle ESC key or other browser exit means
+            const onFullScreenChange = () => {
+                const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+                if (!fsElement && document.body.classList.contains('hyprlock-fullscreen')) {
+                    // Browser exited full screen, we should too
+                    this.toggleFullScreen();
+
+                    // Cleanup listeners
+                    document.removeEventListener('fullscreenchange', onFullScreenChange);
+                    document.removeEventListener('webkitfullscreenchange', onFullScreenChange);
+                }
+            };
+            document.addEventListener('fullscreenchange', onFullScreenChange);
+            document.addEventListener('webkitfullscreenchange', onFullScreenChange);
+
         } else {
             // EXIT Full Screen
             document.body.classList.remove('hyprlock-fullscreen');
 
             // Restore previous scale
-            if (this.prevScale) this.setZoom(this.prevScale);
-            else this.setZoom(0.5); // Default fallback
+            if (this.prevScale) {
+                this.setZoom(this.prevScale);
+            }
 
-            // Exit browser full screen
-            if (document.exitFullscreen) document.exitFullscreen().catch(e => { });
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen().catch(e => { });
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) document.exitFullscreen();
+                else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            }
 
             if (exitBtn) exitBtn.classList.add('hidden');
         }
@@ -1464,3 +1293,7 @@ class HyprlockEditor {
         setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
 }
+
+
+// Initialize Editor
+window.hyprlockEditor = new HyprlockEditor();

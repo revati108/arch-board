@@ -26,30 +26,47 @@ _managers = {}
 def get_manager(tool: str) -> PresetManager:
     """Get or create a PresetManager for a specific tool."""
     if tool not in _managers:
-        if tool == "hyprland":
-            _managers[tool] = PresetManager(
-                config_path="~/.config/hypr/hyprland.conf",
-                presets_dir="~/.config/hypr/presets",
-                tool_name="hyprland"
+        base_presets_dir = "~/.archboard/presets"
+        
+        # Configuration mapping
+        # (config_path, old_presets_dir, tool_id)
+        config_map = {
+            "hyprland": (
+                "~/.config/hypr/hyprland.conf",
+                "~/.config/hypr/presets", 
+                "hyprland"
+            ),
+            "waybar": (
+                "~/.config/waybar/config",
+                "~/.config/waybar/presets",
+                "waybar"
+            ),
+            "hypridle": (
+                "~/.config/hypr/hypridle.conf",
+                "~/.config/hypr/presets/hypridle",
+                "hypridle"
+            ),
+            "hyprlock": (
+                "~/.config/hypr/hyprlock.conf",
+                "~/.config/hypr/presets/hyprlock",
+                "hyprlock"
             )
-        elif tool == "waybar":
-            _managers[tool] = PresetManager(
-                config_path="~/.config/waybar/config",
-                presets_dir="~/.config/waybar/presets",
-                tool_name="waybar"
+        }
+        
+        if tool in config_map:
+            conf_path, old_dir, tool_id = config_map[tool]
+            new_dir = f"{base_presets_dir}/{tool_id}"
+            
+            manager = PresetManager(
+                config_path=conf_path,
+                presets_dir=new_dir,
+                tool_name=tool_id
             )
-        elif tool == "hypridle":
-            _managers[tool] = PresetManager(
-                config_path="~/.config/hypr/hypridle.conf",
-                presets_dir="~/.config/hypr/presets/hypridle",
-                tool_name="hypridle"
-            )
-        elif tool == "hyprlock":
-            _managers[tool] = PresetManager(
-                config_path="~/.config/hypr/hyprlock.conf",
-                presets_dir="~/.config/hypr/presets/hyprlock",
-                tool_name="hyprlock"
-            )
+            
+            # Attempt migration
+            manager.migrate_from(old_dir)
+            
+            _managers[tool] = manager
         else:
             raise HTTPException(status_code=400, detail=f"Unknown tool: {tool}")
 

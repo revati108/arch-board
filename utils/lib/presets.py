@@ -373,3 +373,87 @@ class PresetManager:
         self.deactivate_preset()
         
         return True
+
+    def migrate_from(self, old_presets_dir: str) -> bool:
+        """
+        Migrate presets from an old directory to the current one.
+        
+        Args:
+            old_presets_dir: Path to the old presets directory
+            
+        Returns:
+            True if migration occurred, False otherwise
+        """
+        old_dir = Path(os.path.expanduser(old_presets_dir))
+        if not old_dir.exists() or not old_dir.is_dir():
+            return False
+            
+        print(f"Migrating presets from {old_dir} to {self.presets_dir}")
+        
+        old_manifest_path = old_dir / self.MANIFEST_FILE
+        old_presets = []
+        
+        # Load old manifest if exists
+        if old_manifest_path.exists():
+            try:
+                with open(old_manifest_path, 'r') as f:
+                    data = json.load(f)
+                    old_presets = data.get("presets", [])
+            except:
+                pass
+                
+        # Copy files and metadata
+        migrated_count = 0
+        current_manifest = self._load_manifest()
+        existing_ids = {p["id"] for p in current_manifest["presets"]}
+        
+        # 1. Migrate based on manifest first (preserves metadata)
+        for p_data in old_presets:
+            pid = p_data.get("id")
+            if not pid or pid in existing_ids:
+                continue
+                
+            old_file = old_dir / f"{pid}.conf"
+            if old_file.exists():
+                # Copy file
+                shutil.copy2(old_file, self._get_preset_path(pid))
+                
+                # Add to manifest
+                current_manifest["presets"].append(p_data)
+                existing_ids.add(pid)
+                migrated_count += 1
+                
+        # 2. Pick up any loose files not in manifest
+        for old_file in old_dir.glob("*.conf"):
+            pid = old_file.stem
+            if pid not in existing_ids:
+                # Create default metadata
+                now = datetime.utcnow().isoformat() + "Z"
+                new_preset = {
+                    "id": pid,
+                    "name": pid.replace("_", " ").title(),
+                    "description": "Migrated preset",
+                    "created_at": now,
+                    "updated_at": now,
+                    "is_active": False,
+                    "tool": self.tool_name
+                }
+                
+                shutil.copy2(old_file, self._get_preset_path(pid))
+                current_manifest["presets"].append(new_preset)
+                existing_ids.add(pid)
+                migrated_count += 1
+        
+        if migrated_count > 0:
+            self._save_manifest(current_manifest)
+            
+            # Rename old directory to avoid re-migration
+            # We don't delete to be safe, just rename
+            try:
+                old_dir.rename(old_dir.with_suffix('.migrated'))
+            except Exception as e:
+                print(f"Could not rename old presets dir: {e}")
+                
+            return True
+            
+        return False

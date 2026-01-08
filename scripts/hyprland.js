@@ -9,8 +9,7 @@ let layerrules = [];
 let execCommands = [];
 let envVars = [];
 let gestures = [];
-let presets = [];
-let activePreset = null;
+
 let pendingChanges = {};
 let migrationStatus = null;
 
@@ -71,12 +70,34 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadExec(),
         loadEnv(),
         loadGestures(),
-        loadPresets(),
+        // loadPresets(), // Removed legacy preset loader
         checkMigrationStatus()
     ]);
     renderTabs();
     renderTabContent(activeTab);
-    renderPresetSelector();
+    // Initialize Presets
+    if (window.PresetManagerUI) {
+        window._presetManagers['hyprland'] = new PresetManagerUI('hyprland', {
+            containerId: 'preset-container',
+            onActivate: async () => {
+                await Promise.all([
+                    loadConfig(),
+                    loadMonitors(),
+                    loadBinds(),
+                    loadWindowRules(),
+                    loadLayerRules(),
+                    loadExec(),
+                    loadEnv(),
+                    loadGestures()
+                ]);
+                renderTabContent(activeTab);
+                showToast('Preset activated and config reloaded', 'success');
+            },
+            onSave: async () => {
+                await saveConfig();
+            }
+        });
+    }
 
 
     if (migrationStatus && migrationStatus.needs_migration &&
@@ -641,6 +662,8 @@ function renderEnvTab() {
         </div>
     `;
 }
+
+
 
 // =============================================================================
 // SECTION RENDERING

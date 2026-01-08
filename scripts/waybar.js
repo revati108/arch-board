@@ -75,6 +75,23 @@ async function init() {
     await Promise.all([fetchConfig(), fetchSchema(), fetchStyle()]);
     setupEventListeners();
     renderLayout();
+
+    // Initialize Presets
+    if (window.PresetManagerUI) {
+        window._presetManagers['waybar'] = new PresetManagerUI('waybar', {
+            containerId: 'preset-container',
+            onActivate: async () => {
+                await fetchConfig();
+                renderLayout();
+                showStatus('Preset activated', 'text-green-400');
+            },
+            onSave: async () => {
+                // Saved by other fucntion
+                // showStatus('Preset saved', 'text-green-400');
+            }
+        });
+    }
+
     console.log("Waybar Editor: Init complete");
 }
 
